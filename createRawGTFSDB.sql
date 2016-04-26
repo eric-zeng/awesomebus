@@ -26,9 +26,9 @@ create table shapes (shape_id decimal,
 					shape_dist_traveled decimal
 					);
 
-\copy trips from 'trips_noheader.txt' delimiter ',' csv;
-\copy routes from 'routes_noheader.txt' delimiter ',' csv;
-\copy shapes from 'shapes_noheader.txt' delimiter ',' csv;
+\copy trips from 'data/trips_noheader.txt' delimiter ',' csv;
+\copy routes from 'data/routes_noheader.txt' delimiter ',' csv;
+\copy shapes from 'data/shapes_noheader.txt' delimiter ',' csv;
 
 /* join trips and routes on route_id
  join trips and shapes on shape_id */
