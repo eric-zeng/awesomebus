@@ -26,14 +26,9 @@ create table shapes (shape_id decimal,
 					shape_dist_traveled decimal
 					);
 
-copy trips from '/Users/lucy/Desktop/datavis/a3/google_transit/trips_noheader.txt' delimiter ',' csv;
-copy routes from '/Users/lucy/Desktop/datavis/a3/google_transit/routes_noheader.txt' delimiter ',' csv;
-copy shapes from '/Users/lucy/Desktop/datavis/a3/google_transit/shapes_noheader.txt' delimiter ',' csv;
+\copy trips from 'trips_noheader.txt' delimiter ',' csv;
+\copy routes from 'routes_noheader.txt' delimiter ',' csv;
+\copy shapes from 'shapes_noheader.txt' delimiter ',' csv;
 
-/*
-copy trips from "../google_transit/trips_noheader.txt";
-copy routes from "../google_transit/routes_noheader.txt";
-copy shapes from "../google_transit/shapes_noheader.txt";
-*/
 /* join trips and routes on route_id
  join trips and shapes on shape_id */
