@@ -4,8 +4,7 @@ schema = constructSchema()
 
 #TODO: more testing.
 
-def termIsValid(term, tables):
-    print "checking term", term, "with tables", tables
+def isValidTerm(term, tables):
     # Terms can either be 'table.field' or just 'field' if there's only one table
     # Handle the 'table.field' case first
     if "." in term:
@@ -48,7 +47,7 @@ def validateSelect(select, frm):
 
     # Check if each term is valid for the tables given
     for term in select:
-        if not termIsValid(term, tables):
+        if not isValidTerm(term, tables):
             return None
     return ", ".join(select)
 
@@ -65,9 +64,15 @@ def validateFrom(frm):
             return None
     return ", ".join(frm)
 
-#TODO
-def validateWhere(where):
+def validateWhere(where, frm):
+    # Get tables
+    tables = validateFrom(frm)
+    if tables is None:
+        return None
+    tables = tables.split(", ")
+
     where = where.strip()
+
     # Where clauses can use boolean logic
     # In order to make this as simple as possible, ignore the logic
     # 1. Add spaces around any parenthesis that don't already have them
@@ -75,7 +80,42 @@ def validateWhere(where):
     #   a. parentheses (numer/direction don't matter)
     #   b. 'and'/'or' 
     #   c. a valid term
-    return where
+
+    # Add spaces around any parenthesis that don't already have them
+    where = where.replace("(", " ( ")
+    where = where.replace(")", " ) ")
+    where = where.replace("  ", " ")
+
+    # 2. split on spaces and check each term is one of the following:
+    #   a. parentheses (numer/direction don't matter)
+    #   b. 'and'/'or' 
+    #   c. term=term each where term is one of the following ... 
+    #       i. 'someterminsinglequotes' 
+    #       ii. passes isValidTerm
+    where = where.split()
+    for term in where:
+        if term == "(" or term == ")":
+            continue
+        elif term == "and" or term == "or":
+            continue
+        #  example routes.route_id='100001'
+        # MUST have the form validTerm=validTerm
+        # Doesn't check that both halves are not literals
+        if '=' not in term:
+            return None
+        term = term.split('=')
+        if len(term) != 2:
+            return None
+        # Check each half of the term 
+        # In the example, we're checking routes.route_id and '100001'
+        for halve in term:
+            if halve.startswith("'") and halve.endswith("'"):
+                continue
+            elif isValidTerm(halve, tables):
+                continue
+            return None
+
+    return " ".join(where)
 
 def validateLimit(limit):
     if limit.isdigit():
@@ -106,7 +146,7 @@ def constructSQLquery(j):
             return ""
         select = "select " + select + " "
     if 'where' in clauses:
-        where = validateWhere(command['where'])
+        where = validateWhere(command['where'], command['from'])
         if where is None:
             return ""
         where = "where " + where + " "
