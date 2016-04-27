@@ -5,7 +5,7 @@
   "main": "awesomebus.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -t babelify ./awesomebus.js -o ./awesomebus-bundle.js --insert-globals --debug"
+    "build": "browserify -t babelify ./awesomebus.js -o ./static/static-awesomebus-bundle.js --insert-globals --debug"
   },
   "repository": {
     "type": "git",
@@ -20,7 +20,8 @@
   "dependencies": {
     "d3": "^3.5.16",
     "pg": "^4.5.3",
-    "ps": "0.0.2"
+    "ps": "0.0.2",
+    "xhr": "2.2.0"
   },
   "devDependencies": {
     "babelify": "^7.3.0",
