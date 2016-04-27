@@ -3,3 +3,4 @@ node_modules/
 awesomebus-bundle.js
 data/allData.csv
 scratch.py
+static/static-awesomebus-bundle.js
