@@ -1,4 +1,4 @@
-
+*.pyc
 node_modules/
 awesomebus-bundle.js
 data/allData.csv
