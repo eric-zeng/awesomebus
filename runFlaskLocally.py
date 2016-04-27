@@ -58,7 +58,7 @@ def test():
     print "SQL: " + sql
     cur.execute(sql)
     rows = cur.fetchall()
-    print rows
+    #print rows
     print "made it"
     return str(rows)
 

@@ -13,9 +13,9 @@ xhr.post( {
     TODO: functionize this??*/
     json: 
       [{
-        "select" : "*",
-        "from"  : "routes", 
-        "where" : "route_id='100001'",
+        "select" : "routes.route_id, shapes.shape_id",
+        "from"  : "routes, trips, shapes", 
+        "where" : "routes.route_id='100001'",
         "limit" : "10"
       }]
   }, 
