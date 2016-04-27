@@ -7,22 +7,6 @@ var svg = d3.select("body").append("svg")
  
 var xhr = require('xhr');
 
-var query = 'test';
-var sqlVars = 'select * from shapes limit 10';
-/*
-xhr.get({
-
-    url: 'http://localhost:5000/' + query  + "/" + sqlVars
-
-}, function (error, response, body) {
-    //console.log(JSON.parse(body));
-    console.log("hello!");
-    console.log(body);
-
-});*/
-
-
-console.log("done with the get");
 xhr.post( {
     url: 'http://localhost:5000/query',
     /* CHANGE THIS PART!!!
@@ -36,7 +20,6 @@ xhr.post( {
       }]
   }, 
   function(error, response, body) {
-    /*console.log(body)*/
-    console.log("????!");
+    console.log(body)
 });
  
