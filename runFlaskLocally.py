@@ -1,8 +1,10 @@
 #!/usr/bin/python
 import psycopg2
 import os
-from flask import Flask, render_template, url_for
-
+import json
+from flask import Flask, render_template, url_for, request
+from schema import *
+from SQLHelper import *
 ####################################################################
 #                            FLASK SETUP                           #
 ####################################################################
@@ -37,6 +39,7 @@ def connectToDB():
     return conn.cursor()    
 
 
+
 ####################################################################
 #                          FLASK FUNCTIONS                         #
 ####################################################################
@@ -44,14 +47,19 @@ def connectToDB():
 def index():
     return render_template('index.html')
 
-@app.route("/test")
+@app.route("/query", methods=["POST"])
 def test():
     cur = connectToDB()
     if cur is None:
         print "Could not connect to database."
         return ""
-    cur.execute("select * from routes limit 10")
+    sql_args = request.get_json()
+    sql = constructSQLquery(sql_args)
+    print "SQL: " + sql
+    cur.execute(sql)
     rows = cur.fetchall()
+    print rows
+    print "made it"
     return str(rows)
 
 
