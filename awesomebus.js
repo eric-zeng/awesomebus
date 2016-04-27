@@ -15,7 +15,7 @@ xhr.post( {
       [{
         "select" : "routes.route_id, shapes.shape_id",
         "from"  : "routes, trips, shapes", 
-        "where" : "routes.route_id='100001'",
+        "where" : "(routes.route_id='100001' and trips.route_id=routes.route_id) or shapes.shape_id='123123'",
         "limit" : "10"
       }]
   }, 
