@@ -6,21 +6,13 @@ var svg = d3.select("body").append("svg")
     .attr("width", 1024)
     .attr("height", 768);
 
-let queryUrl = 'http://localhost:5000/query';
-
 function getRouteShapes(routeNum, callback) {
-  xhr.post({
-    url: queryUrl,
-    json: [{
-      'select': 'shapes.shape_pt_lat, shapes.shape_pt_lon',
-      'from': 'routes, trips, shapes',
-      'where': 'routes.route_short_name=\'' + routeNum + '\' and trips.route_id=routes.route_id and shapes.shape_id=trips.shape_id'
-    }]
+  xhr.get({
+    url: 'http://localhost:5000/shapes?route=' + routeNum
   }, callback);
 }
 
 
 getRouteShapes(48, function(err, response, body) {
-  console.log(err);
-  console.log(response);
+  console.log(body);
 });

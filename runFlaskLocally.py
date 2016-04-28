@@ -36,9 +36,15 @@ def connectToDB():
         return conn
     if conn is None:
         return conn
-    return conn.cursor()    
+    return conn.cursor()
 
-
+def query(sql_query, values):
+    cur = connectToDB()
+    if cur is None:
+        print "Could not connect to database."
+        return ""
+    cur.execute(sql_query, values)
+    return cur.fetchall()
 
 ####################################################################
 #                          FLASK FUNCTIONS                         #
@@ -47,21 +53,27 @@ def connectToDB():
 def index():
     return render_template('index.html')
 
-@app.route("/query", methods=["POST"])
+@app.route("/json_query", methods=["POST"])
 def test():
-    cur = connectToDB()
-    if cur is None:
-        print "Could not connect to database."
-        return ""
     sql_args = request.get_json()
     sql = constructSQLquery(sql_args)
     print "SQL: " + sql
-    cur.execute(sql)
-    rows = cur.fetchall()
+
+    rows = query(sql)
+
     print rows
     print "made it"
     return str(rows)
 
+@app.route("/shapes", methods=["GET"])
+def getShapesForRoute():
+    routeNum = request.args.get("route")
+    sql = "select distinct shapes.shape_pt_lat, shapes.shape_pt_lon, routes.route_short_name from routes, shapes, trips where routes.route_short_name=(%s) and trips.route_id=routes.route_id and trips.shape_id=shapes.shape_id;"
+    print sql
+
+    rows = query(sql, (routeNum, ))
+    print rows
+    return str(rows)
 
 if __name__ == '__main__':
     app.run()
