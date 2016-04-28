@@ -14,7 +14,7 @@ function getRouteShapes(routeNum, callback) {
     json: [{
       'select': 'shapes.shape_pt_lat, shapes.shape_pt_lon',
       'from': 'routes, trips, shapes',
-      'where': 'routes.route_short_name=' + routeNum + ' AND trips.route_id=routes.route_id AND shapes.shape_id=trips.shape_id'
+      'where': 'routes.route_short_name=\'' + routeNum + '\' and trips.route_id=routes.route_id and shapes.shape_id=trips.shape_id'
     }]
   }, callback);
 }
