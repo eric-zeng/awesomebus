@@ -102,6 +102,26 @@ function drawRoute(body, fill) {
 //        .attr( "fill", "#ccc" )
 //        .attr("d", geoPath) // path generator translates geo data to SVG
 // });
+   var geoJSONbus49 = {
+       "type": "LineString",
+        "coordinates" : [
+      /*[47.6767, -122.3376],
+      [47.6015, -122.3343]*/
+      [-122.32, 47.62],
+      [-122.33,47.63]
+        ]
+  };
+
+  console.log("wat");
+
+var bus = svg.append("g");
+
+  bus.selectAll("path")
+      .data([geoJSONbus49])
+      .enter()
+      .append("path")
+      .attr("class", "path")
+      .attr("d", geoPath);
 
 
 // drawAllRoutes();
