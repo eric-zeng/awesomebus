@@ -62,7 +62,7 @@ def test():
 
     rows = query(sql)
 
-    print rows
+    #print rows
     print "made it"
     return str(rows)
 
@@ -80,6 +80,16 @@ def getShapesForRoute():
         formatted.append([ float(row[1]), float(row[0]) ])
 
     return json.dumps(formatted)
+@app.route("/allRoutes", methods=["GET"])
+def getAllRoutes():
+    sql = "select distinct route_short_name from routes"
+    rows = query(sql, "")
+    formatted = list()
+    for row in rows:
+        formatted.append(row[0])
+    return json.dumps(formatted)
+
+
 
 if __name__ == '__main__':
     app.run()

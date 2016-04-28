@@ -26,17 +26,24 @@ var albersProjection = d3.geo.albers()
 var geoPath = d3.geo.path()
     .projection(albersProjection);
 
-d3.json("static/city-limits.json", function(json){
-  console.log(json);
-  svg.selectAll("path") // selects path elements, will make them if they don't exist
-       .data(json.features) // iterates over geo feature
-       .enter() // adds feature if it doesn't exist as an element
-       .append("path") // defines element as a path
-       .attr( "fill", "#ccc" )
-       .attr("d", geoPath) // path generator translates geo data to SVG
-});
+function drawAllRoutes() {
+  xhr.get({
+    url: 'http://localhost:5000/allRoutes'
+  }, function (err, response, body) 
+  {
+    var routes = JSON.parse(body);
+    for (i = 0; i < routes.length; i++)
+    {
+      getRouteShapes(routes[i], function(err, response, body) {
+        drawRoute(body, '#900')
+      });
+    }
+  })
+  
+}
 
-getRouteShapes(48, function(err, response, body) {
+
+function drawRoute(body, fill) {
   let data = JSON.parse(body);
 
   let geoJSON = data.map((point) => {
@@ -49,7 +56,7 @@ getRouteShapes(48, function(err, response, body) {
       "properties": {}
     }
   });
-  console.log(geoJSON);
+  /*console.log(geoJSON);*/
 
   var buspoints = svg.append('g');
 
@@ -57,7 +64,22 @@ getRouteShapes(48, function(err, response, body) {
     .data(geoJSON)
     .enter()
       .append('path')
-      .attr('fill', '#900')
+      .attr('fill', fill)
       .attr('stroke', '#999')
       .attr('d', geoPath);
+}
+
+/* END FUNCTION DEFINITION SECTION */
+
+d3.json("static/city-limits.json", function(json){
+  /*console.log(json);*/
+  svg.selectAll("path") // selects path elements, will make them if they don't exist
+       .data(json.features) // iterates over geo feature
+       .enter() // adds feature if it doesn't exist as an element
+       .append("path") // defines element as a path
+       .attr( "fill", "#ccc" )
+       .attr("d", geoPath) // path generator translates geo data to SVG
 });
+
+
+drawAllRoutes();
