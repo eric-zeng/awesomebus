@@ -17,7 +17,6 @@ var projection = d3.geo.mercator()
     .scale((1 << 21) / 2 / Math.PI)
     .translate([width / 2, height / 2]);
 
-
 var svg = d3.select("body")
   .append("svg")
   .attr("width", width)
@@ -37,7 +36,7 @@ svg.selectAll("g")
         g.selectAll("path")
             .data(json.features.sort(function(a, b) { return a.properties.sort_key - b.properties.sort_key; }))
           .enter().append("path")
-            .attr("class", function(d) { return d.properties.kind; })
+            .attr("class", function(d) { return 'road-layer ' + d.properties.kind; })
             .attr("d", geoPath);
       });
     });
