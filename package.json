@@ -19,8 +19,6 @@
   "homepage": "https://github.com/CSE512-16S/a3-lucysimko-eric-zeng#readme",
   "dependencies": {
     "d3": "^3.5.16",
-    "pg": "^4.5.3",
-    "ps": "0.0.2",
     "xhr": "2.2.0"
   },
   "devDependencies": {
