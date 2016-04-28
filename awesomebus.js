@@ -32,20 +32,19 @@ svg.selectAll("g")
   .enter().append("g")
     .each(function(d) {
       var g = d3.select(this);
-      d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, json) {
-        g.selectAll("path")
-            .data(json.features.sort(function(a, b) { return a.properties.sort_key - b.properties.sort_key; }))
-          .enter().append("path")
-            .attr("class", function(d) { return 'road-layer ' + d.properties.kind; })
-            .attr("d", geoPath);
-      });
-
-      d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-water-areas/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, json) {
-        g.selectAll("path")
-            .data(json.features)
-          .enter().append("path")
-            .attr("class", function(d) { return 'water ' +  d.properties.kind; })
-            .attr("d", geoPath);
+      var server = ["a", "b", "c"][(d[0] * 31 + d[1]) % 3];
+      d3.json("http://" + server + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, roads) {
+        d3.json("http://" + server + ".tile.openstreetmap.us/vectiles-water-areas/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, water) {
+          var sortedRoads = roads.features.sort(function(a, b) {
+            return a.properties.sort_key - b.properties.sort_key;
+          })
+          var allData = water.features.concat(sortedRoads);
+          g.selectAll("path")
+              .data(allData)
+            .enter().append("path")
+              .attr("class", function(d) { return d.properties.kind; })
+              .attr("d", geoPath);
+        });
       });
     });
 
