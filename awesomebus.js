@@ -39,6 +39,14 @@ svg.selectAll("g")
             .attr("class", function(d) { return 'road-layer ' + d.properties.kind; })
             .attr("d", geoPath);
       });
+
+      d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-water-areas/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, json) {
+        g.selectAll("path")
+            .data(json.features)
+          .enter().append("path")
+            .attr("class", function(d) { return 'water ' +  d.properties.kind; })
+            .attr("d", geoPath);
+      });
     });
 
 
@@ -96,4 +104,4 @@ function drawRoute(body, fill) {
 // });
 
 
-drawAllRoutes();
+// drawAllRoutes();
