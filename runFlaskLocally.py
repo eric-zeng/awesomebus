@@ -68,12 +68,17 @@ def test():
 @app.route("/shapes", methods=["GET"])
 def getShapesForRoute():
     routeNum = request.args.get("route")
-    sql = "select distinct shapes.shape_pt_lat, shapes.shape_pt_lon, routes.route_short_name from routes, shapes, trips where routes.route_short_name=(%s) and trips.route_id=routes.route_id and trips.shape_id=shapes.shape_id;"
+    sql = "select distinct shapes.shape_pt_lat, shapes.shape_pt_lon from routes, shapes, trips where routes.route_short_name=(%s) and trips.route_id=routes.route_id and trips.shape_id=shapes.shape_id;"
     print sql
 
     rows = query(sql, (routeNum, ))
     print rows
-    return str(rows)
+
+    formatted = list()
+    for row in rows:
+        formatted.append({ 'lat': str(row[0]), 'long': str(row[1]) })
+
+    return json.dumps(formatted)
 
 if __name__ == '__main__':
     app.run()

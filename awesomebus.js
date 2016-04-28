@@ -14,5 +14,5 @@ function getRouteShapes(routeNum, callback) {
 
 
 getRouteShapes(48, function(err, response, body) {
-  console.log(body);
+  console.log(JSON.parse(body));
 });
