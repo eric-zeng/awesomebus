@@ -5,6 +5,7 @@ schema = constructSchema()
 #TODO: more testing.
 
 def isValidTerm(term, tables):
+    term = term.lower()
     # Terms can either be 'table.field' or just 'field' if there's only one table
     # Handle the 'table.field' case first
     if "." in term:
@@ -47,12 +48,13 @@ def validateSelect(select, frm):
 
     # Check if each term is valid for the tables given
     for term in select:
+        term = term.lower()
         if not isValidTerm(term, tables):
             return None
     return ", ".join(select)
 
 def validateFrom(frm):
-    frm = frm.strip()
+    frm = frm.strip().lower()
     if frm == "*":
         return "*"
     # Break on commas/spaces
@@ -70,7 +72,6 @@ def validateWhere(where, frm):
     if tables is None:
         return None
     tables = tables.split(", ")
-
     where = where.strip()
 
     # Where clauses can use boolean logic
@@ -94,6 +95,7 @@ def validateWhere(where, frm):
     #       ii. passes isValidTerm
     where = where.split()
     for term in where:
+
         if term == "(" or term == ")":
             continue
         elif term == "and" or term == "or":
@@ -111,7 +113,7 @@ def validateWhere(where, frm):
         for halve in term:
             if halve.startswith("'") and halve.endswith("'"):
                 continue
-            elif isValidTerm(halve, tables):
+            elif isValidTerm(halve.lower(), tables):
                 continue
             return None
 
@@ -156,7 +158,6 @@ def constructSQLquery(j):
             limit = "limit " + limit + " "
     # TODO check that the clauses have select, fomr, where, or join, etc
 
-    print select, frm, where, limit
     return select + frm + where + limit
 
 
