@@ -12,11 +12,12 @@ from SQLHelper import *
 USER = os.getenv("USER")
 DATABASE = "transitdata"
 
-app = Flask(__name__, static_url_path='')
+app = Flask(__name__)
 app.config['SERVER_NAME'] = "localhost:5000"
 
 with app.app_context():
     url_for('static', filename='static-awesomebus-bundle.js')
+    url_for('static', filename='city-limits.json')
 
 ####################################################################
 #                          HELPER FUNCTIONS                        #
@@ -76,7 +77,7 @@ def getShapesForRoute():
 
     formatted = list()
     for row in rows:
-        formatted.append({ 'lat': str(row[0]), 'long': str(row[1]) })
+        formatted.append([ float(row[1]), float(row[0]) ])
 
     return json.dumps(formatted)
 
