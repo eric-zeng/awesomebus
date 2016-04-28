@@ -1,4 +1,3 @@
-var d3 = require('d3');
 var xhr = require('xhr');
 
 function getRouteShapes(routeNum, callback) {
@@ -7,29 +6,47 @@ function getRouteShapes(routeNum, callback) {
   }, callback);
 }
 
-let width = 1024
-let height = 768
+let width = window.innerWidth;
+let height = window.innerHeight;
+
+var tiler = d3.geo.tile()
+    .size([width, height]);
+
+var projection = d3.geo.mercator()
+    .center([-122.3321, 47.6362])
+    .scale((1 << 21) / 2 / Math.PI)
+    .translate([width / 2, height / 2]);
+
 
 var svg = d3.select("body")
   .append("svg")
   .attr("width", width)
   .attr("height", height);
 
-var g = svg.append( "g" );
-
-var albersProjection = d3.geo.albers()
-  .scale(150000)
-  .rotate([122.3321, 0])
-  .center([0, 47.6062])
-  .translate([1024 / 2, height / 2]);
-
 var geoPath = d3.geo.path()
-    .projection(albersProjection);
+    .projection(projection);
+
+svg.selectAll("g")
+    .data(tiler
+      .scale(projection.scale() * 2 * Math.PI)
+      .translate(projection([0, 0])))
+  .enter().append("g")
+    .each(function(d) {
+      var g = d3.select(this);
+      d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, json) {
+        g.selectAll("path")
+            .data(json.features.sort(function(a, b) { return a.properties.sort_key - b.properties.sort_key; }))
+          .enter().append("path")
+            .attr("class", function(d) { return d.properties.kind; })
+            .attr("d", geoPath);
+      });
+    });
+
 
 function drawAllRoutes() {
   xhr.get({
     url: 'http://localhost:5000/allRoutes'
-  }, function (err, response, body) 
+  }, function (err, response, body)
   {
     var routes = JSON.parse(body);
     for (i = 0; i < routes.length; i++)
@@ -39,7 +56,6 @@ function drawAllRoutes() {
       });
     }
   })
-  
 }
 
 
@@ -56,7 +72,6 @@ function drawRoute(body, fill) {
       "properties": {}
     }
   });
-  /*console.log(geoJSON);*/
 
   var buspoints = svg.append('g');
 
@@ -71,15 +86,15 @@ function drawRoute(body, fill) {
 
 /* END FUNCTION DEFINITION SECTION */
 
-d3.json("static/city-limits.json", function(json){
-  /*console.log(json);*/
-  svg.selectAll("path") // selects path elements, will make them if they don't exist
-       .data(json.features) // iterates over geo feature
-       .enter() // adds feature if it doesn't exist as an element
-       .append("path") // defines element as a path
-       .attr( "fill", "#ccc" )
-       .attr("d", geoPath) // path generator translates geo data to SVG
-});
+// d3.json("static/city-limits.json", function(json){
+//   /*console.log(json);*/
+//   svg.selectAll("path") // selects path elements, will make them if they don't exist
+//        .data(json.features) // iterates over geo feature
+//        .enter() // adds feature if it doesn't exist as an element
+//        .append("path") // defines element as a path
+//        .attr( "fill", "#ccc" )
+//        .attr("d", geoPath) // path generator translates geo data to SVG
+// });
 
 
 drawAllRoutes();
