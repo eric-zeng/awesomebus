@@ -1,5 +1,57 @@
 var xhr = require('xhr');
 
+function drawRoute(body, routeNum)
+{
+
+  var data = JSON.parse(body);
+  // The data returned are in the format:
+  // [long, lat, seq]
+  // there may be duplicates for seq -- take the first of each one.
+  // the duplicate nature is because there are sometimes different values for
+  // trips.service_id and shapes.shape_dist_traveled ... as an example, look at the 49.
+  var dedupedData = [];
+  var seqSeen = [];
+  for (var i = 0; i < data.length; i++)
+  {
+    var row = data[i];
+    var seq = row[2];
+    var newSeq= true;
+    for (var j = 0; j < seqSeen.length; j++)
+    {
+      if (seqSeen[j] == seq)
+      {
+        newSeq = false;
+        break;
+      }
+    }
+    if (newSeq)
+    {
+      dedupedData.push(row);
+      seqSeen.push(seq);
+    }
+  }
+
+  var coords = dedupedData.map(function(row) {
+    return [row[0], row[1]];
+  });
+
+  var geoJSONroute = {
+    "type": "LineString",
+    "coordinates" : coords
+  }
+
+  var bus = svg.append("g");
+
+  bus.selectAll("path")
+    //.data([geoJSONbus49])
+    .data([geoJSONroute])
+    .enter()
+    .append("path")
+    .attr("class", "path")
+    .attr("d", geoPath);
+
+}
+
 function getRouteShapes(routeNum, callback) {
   xhr.get({
     url: 'http://localhost:5000/shapes?route=' + routeNum
@@ -66,62 +118,4 @@ function drawAllRoutes() {
 }
 
 
-function drawRoute(body, fill) {
-  let data = JSON.parse(body);
-
-  let geoJSON = data.map((point) => {
-    return {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": point
-      },
-      "properties": {}
-    }
-  });
-
-  var buspoints = svg.append('g');
-
-  buspoints.selectAll('path')
-    .data(geoJSON)
-    .enter()
-      .append('path')
-      .attr('fill', fill)
-      .attr('stroke', '#999')
-      .attr('d', geoPath);
-}
-
-/* END FUNCTION DEFINITION SECTION */
-
-// d3.json("static/city-limits.json", function(json){
-//   /*console.log(json);*/
-//   svg.selectAll("path") // selects path elements, will make them if they don't exist
-//        .data(json.features) // iterates over geo feature
-//        .enter() // adds feature if it doesn't exist as an element
-//        .append("path") // defines element as a path
-//        .attr( "fill", "#ccc" )
-//        .attr("d", geoPath) // path generator translates geo data to SVG
-// });
-   var geoJSONbus49 = {
-       "type": "LineString",
-        "coordinates" : [
-      /*[47.6767, -122.3376],
-      [47.6015, -122.3343]*/
-      [-122.32, 47.62],
-      [-122.33,47.63]
-        ]
-  };
-
-  console.log("wat");
-
-var bus = svg.append("g");
-
-  bus.selectAll("path")
-      .data([geoJSONbus49])
-      .enter()
-      .append("path")
-      .attr("class", "path")
-      .attr("d", geoPath);
-
-
-// drawAllRoutes();
+drawAllRoutes();
