@@ -9,7 +9,7 @@ order by routes.route_short_name;
 
 # Get lat/long, route name, and sequence number for every route.
 # Nest the previous query to limit the results to a single trip.
-select shapes.shape_pt_lat, shapes.shape_pt_lon, routes.route_short_name, shapes.shape_pt_sequence
+select shapes.shape_pt_lon, shapes.shape_pt_lat, routes.route_short_name, shapes.shape_pt_sequence
 from trips, routes, shapes, (
   select routes.route_short_name, MIN(trips.trip_id) as trip_id
   from trips, routes

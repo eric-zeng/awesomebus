@@ -1,40 +1,6 @@
-var xhr = require('xhr');
+'use strict';
 
-function drawRoute(body, routeNum)
-{
-
-  var data = JSON.parse(body);
-  // The data returned are in the format:
-  // [long, lat, seq]
-  // there may be duplicates for seq -- take the first of each one.
-  // the duplicate nature is because there are sometimes different values for
-  // trips.service_id and shapes.shape_dist_traveled ... as an example, look at the 49.
-  var dedupedData = [];
-  var seqSeen = [];
-  for (var i = 0; i < data.length; i++)
-  {
-    var row = data[i];
-    var seq = row[2];
-    var newSeq= true;
-    for (var j = 0; j < seqSeen.length; j++)
-    {
-      if (seqSeen[j] == seq)
-      {
-        newSeq = false;
-        break;
-      }
-    }
-    if (newSeq)
-    {
-      dedupedData.push(row);
-      seqSeen.push(seq);
-    }
-  }
-
-  var coords = dedupedData.map(function(row) {
-    return [row[0], row[1]];
-  });
-
+function drawRoute(coords) {
   var geoJSONroute = {
     "type": "LineString",
     "coordinates" : coords
@@ -43,19 +9,11 @@ function drawRoute(body, routeNum)
   var bus = svg.append("g");
 
   bus.selectAll("path")
-    //.data([geoJSONbus49])
     .data([geoJSONroute])
     .enter()
     .append("path")
     .attr("class", "path")
     .attr("d", geoPath);
-
-}
-
-function getRouteShapes(routeNum, callback) {
-  xhr.get({
-    url: 'http://localhost:5000/shapes?route=' + routeNum
-  }, callback);
 }
 
 let width = window.innerWidth;
@@ -100,21 +58,8 @@ svg.selectAll("g")
       });
     });
 
-
-function drawAllRoutes() {
-  xhr.get({
-    url: 'http://localhost:5000/allRoutes'
-  }, function (err, response, body)
-  {
-    var routes = JSON.parse(body);
-    for (i = 0; i < routes.length; i++)
-    {
-      getRouteShapes(routes[i], function(err, response, body) {
-        drawRoute(body, '#900')
-      });
-    }
-  })
-}
-
-
-drawAllRoutes();
+d3.json('routePathData.json', function(err, data) {
+  for (var route in data) {
+    drawRoute(data[route]);
+  }
+});
