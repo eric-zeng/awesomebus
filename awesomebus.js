@@ -1,68 +1,45 @@
 'use strict';
 
-/**
- * Utility function
- * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
- */
-function stringHash(str) {
-  var hash = 0, i, chr, len;
-  if (str.length === 0) return hash;
-  for (i = 0, len = str.length; i < len; i++) {
-    chr   = str.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
+/*****************************************************************************/
+/*******     DATA       ******************************************************/
+/*****************************************************************************/
+var routes = [];  // All route data. To be populated by routePathData.json
+var selectedRoutes = []; //  Subset of routeData that is currently selected.
+
+// Pull in processed KC Metro GTFS data
+d3.json('data/routePathData.json', function(err, data) {
+  // Convert data to GeoJSON format
+  var features = [];
+  for (var route in data) {
+    var routeFeature = {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": data[route]
+      },
+      properties: {
+        "route": route
+      }
+    };
+    features.push(routeFeature);
   }
-  return hash;
-}
+  // Set global variables
+  routes = features;
+  selectedRoutes = features;
+});
 
-
-function drawRoutes(features) {
-  var bus = svg.append("g");
-
-  bus.selectAll("path")
-    .data(features)
-    .enter()
-      .append("path")
-      .attr("d", geoPath)
-      .attr("class", "route")
-      // Set route color based on transit mode
-      .style("stroke", function(feature) {
-        var route = feature.properties.route;
-        if (route === 'LINK') {
-          return "#2b376c";  // Link Light Rail - blue
-        } else if (route.startsWith('Stcr')) {
-          return "#d67114";  // Seattle Streetcar - orange
-        } else if (route.endsWith('Line')) {
-          return "#cc0000";  // RapidRide - red
-        } else {
-          // Randomly assign colors for bus routes by hashing route number.
-          var hash = (stringHash(route) % 0xFFFFFF).toString(16);
-          var numPadding = 6 - hash.length;
-          var padding = '';
-          for (var i = 0; i < numPadding; i++) {
-            padding += '0'
-          }
-          var color = '#' + padding + hash;
-          // Darken the final color
-          return d3.rgb(color).darker(Math.random() + 1).toString();
-        }
-       })
-      // Set width of line based on transit mode
-      .style("stroke-width", function(feature) {
-        var route = feature.properties.route;
-        if (route === 'LINK') {
-          return 6;  // Link Light Rail
-        } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
-          return 5;  // Streetcar and RapidRide
-        } else  {
-          return 3;  // Buses
-        }
-       });
-}
-
+/*****************************************************************************/
+/*******     MAP RENDERING        ********************************************/
+/*****************************************************************************/
+// Setup SVG where map will be rendered
 let width = window.innerWidth;
 let height = window.innerHeight;
+var svg = d3.select("body")
+  .append("svg")
+  .attr("width", width)
+  .attr("height", height);
 
+// Set up underlying map projection, representation
 var tiler = d3.geo.tile()
     .size([width, height]);
 
@@ -71,17 +48,11 @@ var projection = d3.geo.mercator()
     .scale((1 << 21) / 2 / Math.PI)
     .translate([width / 2, height / 2]);
 
-var svg = d3.select("body")
-  .append("svg")
-  .attr("width", width)
-  .attr("height", height);
-
 var geoPath = d3.geo.path()
     .projection(projection);
-/**
- * Render background map using static vector tiles from OpenStreetMap.
- * Source: http://bl.ocks.org/mbostock/5616813
- */
+
+// Render background map using static vector tiles from OpenStreetMap.
+// Source: http://bl.ocks.org/mbostock/5616813
 svg.selectAll("g")
     .data(tiler
       .scale(projection.scale() * 2 * Math.PI)
@@ -111,24 +82,66 @@ svg.selectAll("g")
       });
     });
 
-/**
- * Pull in processed KC Metro GTFS data
- */
-d3.json('data/routePathData.json', function(err, data) {
-  // Convert data to GeoJSON format
-  var features = [];
-  for (var route in data) {
-    var routeFeature = {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": data[route]
-      },
-      properties: {
-        "route": route
+/*****************************************************************************/
+/*******     ROUTE RENDERING        ******************************************/
+/*****************************************************************************/
+var bus = svg.append("g");
+bus.selectAll("path")
+  .data(selectedRoutes)
+  .enter()
+    .append("path")
+    .attr("d", geoPath)
+    .attr("class", "route")
+    .on("click", onRouteClicked)
+    // Set route color based on transit mode
+    .style("stroke", function(feature) {
+      var route = feature.properties.route;
+      if (route === 'LINK') {
+        return "#2b376c";  // Link Light Rail - blue
+      } else if (route.startsWith('Stcr')) {
+        return "#d67114";  // Seattle Streetcar - orange
+      } else if (route.endsWith('Line')) {
+        return "#cc0000";  // RapidRide - red
+      } else {
+        // Randomly assign colors for bus routes by hashing route number.
+        var hash = (stringHash(route) % 0xFFFFFF).toString(16);
+        var numPadding = 6 - hash.length;
+        var padding = '';
+        for (var i = 0; i < numPadding; i++) {
+          padding += '0'
+        }
+        var color = '#' + padding + hash;
+        // Darken the final color
+        return d3.rgb(color).darker(Math.random() + 1).toString();
       }
-    };
-    features.push(routeFeature);
+     })
+    // Set width of line based on transit mode
+    .style("stroke-width", function(feature) {
+      var route = feature.properties.route;
+      if (route === 'LINK') {
+        return 6;  // Link Light Rail
+      } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
+        return 5;  // Streetcar and RapidRide
+      } else  {
+        return 3;  // Buses
+      }
+     });
+
+function onRouteClicked(params) {
+  console.log(params);
+}
+
+/**
+ * Utility function for randomizing colors
+ * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+ */
+function stringHash(str) {
+  var hash = 0, i, chr, len;
+  if (str.length === 0) return hash;
+  for (i = 0, len = str.length; i < len; i++) {
+    chr   = str.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
   }
-  drawRoute(features);
-});
+  return hash;
+}
