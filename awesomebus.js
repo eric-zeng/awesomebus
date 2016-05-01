@@ -1,6 +1,21 @@
 'use strict';
 
-function drawRoute(coords) {
+/**
+ * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+ */
+function stringHash(str) {
+  var hash = 0, i, chr, len;
+  if (str.length === 0) return hash;
+  for (i = 0, len = str.length; i < len; i++) {
+    chr   = str.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+}
+
+
+function drawRoute(route, coords) {
   var geoJSONroute = {
     "type": "LineString",
     "coordinates" : coords
@@ -12,7 +27,39 @@ function drawRoute(coords) {
     .data([geoJSONroute])
     .enter()
     .append("path")
-    .attr("class", "path")
+    .attr("class", "route")
+    // Set route color based on transit mode
+    .style("stroke", function(d) {
+      if (route === 'LINK') {
+        return "#2b376c";
+      } else if (route.startsWith('Stcr')) {
+        return "#d67114";
+      } else if (route.endsWith('Line')) {
+        return "#cc0000";
+      } else {
+        // Generate color by hashing route number
+        var hash = (stringHash(route) % 0xFFFFFF).toString(16);
+        var numPadding = 6 - hash.length;
+
+        var padding = '';
+        for (var i = 0; i < numPadding; i++) {
+          padding += '0'
+        }
+        var color = '#' + padding + hash;
+
+        return d3.rgb(color).darker(Math.random() + 1).toString();
+      }
+     })
+    // Set route width based on transit mode
+    .style("stroke-width", function(d) {
+      if (route === 'LINK') {
+        return 6;
+      } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
+        return 5;
+      } else  {
+        return 3;
+      }
+     })
     .attr("d", geoPath);
 }
 
@@ -60,6 +107,6 @@ svg.selectAll("g")
 
 d3.json('data/routePathData.json', function(err, data) {
   for (var route in data) {
-    drawRoute(data[route]);
+    drawRoute(route, data[route]);
   }
 });
