@@ -32,21 +32,10 @@ def query(sql_query):
 
 # This query gets lat/long, route name, and sequence number for every route.
 # See queries.sql for better formatting, explanation
-master_query = "select shapes.shape_pt_lon, shapes.shape_pt_lat, "
-master_query += "routes.route_short_name, shapes.shape_pt_sequence "
-master_query += "from trips, routes, shapes, ("
-master_query += "select routes.route_short_name, MIN(trips.trip_id) as trip_id "
-master_query += "from trips, routes "
-master_query += "where trips.route_id=routes.route_id "
-master_query += "group by routes.route_short_name "
-master_query += "order by routes.route_short_name "
-master_query += ") as trip_per_route "
-master_query += "where trips.route_id=routes.route_id "
-master_query += "and trips.shape_id=shapes.shape_id "
-master_query += "and trips.trip_id=trip_per_route.trip_id "
-master_query += "order by routes.route_short_name, shapes.shape_pt_sequence;"
+query_file = open('routePathQuery.sql', 'r')
+route_path_query = query_file.read()
 
-rows = query(master_query)
+rows = query(route_path_query)
 
 export = dict()
 export_file = open('routePathData.json', 'w')
