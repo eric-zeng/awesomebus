@@ -58,7 +58,7 @@ svg.selectAll("g")
       });
     });
 
-d3.json('routePathData.json', function(err, data) {
+d3.json('data/routePathData.json', function(err, data) {
   for (var route in data) {
     drawRoute(data[route]);
   }
