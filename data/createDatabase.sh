@@ -1,6 +1,4 @@
 dropdb transitdata
-rm data/allData.csv
-touch data/allData.csv
 echo "dropped database transitdata just so we are starting fresh"
 createdb transitdata
 echo "CREATED DATABASE transitdata"
