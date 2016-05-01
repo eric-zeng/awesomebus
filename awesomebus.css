@@ -1,0 +1,24 @@
+body {
+  margin: 0;
+}
+
+.route {
+  fill: none;
+}
+
+.ocean, .water, .riverbank, .reservoir {
+  fill: #468ba4;
+  stroke: #468ba4;
+}
+
+.major_road, .minor_road, .highway, .rail {
+  fill: none;
+  stroke: #000;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.major_road { stroke: #776; }
+.minor_road { stroke: #ccb; }
+.highway { stroke: #d4b24b; stroke-width: 1.5px; }
+.rail { stroke: #7de; }
