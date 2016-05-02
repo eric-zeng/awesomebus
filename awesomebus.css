@@ -33,15 +33,15 @@ body {
   position: absolute;
   z-index: 2;
 
-  bottom: 25px;
-  left: 25px;
-  height: 250px;
-  width: 250px;
+  bottom: 20px;
+  left: 20px;
+  height: 220px;
+  width: 210px;
 
   background-color: #FDFCF8;
   box-shadow: 0px 0px 5px 2px #39616F;
   border-radius: 2px;
-  padding: 10px;
+  padding: 5px;
 }
 
 .ui-item {
@@ -55,7 +55,7 @@ h3 {
 }
 
 #subtitle {
-  font-size: 14px;
+  font-size: 12px;
   color: #474747;
 }
 
@@ -73,7 +73,7 @@ h3 {
   border: 1px solid #007900;
   border-radius: 4px;
   padding: 5px 11px;
-  font-size: 14px;
+  font-size: 12px;
   margin-left: 3px;
 }
 
