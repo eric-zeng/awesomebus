@@ -113,6 +113,18 @@ function getColor(feature)
     return d3.rgb(color).darker(Math.random() + 1).toString();
   }
 }
+
+function getRouteWidth(feature) {
+  var route = feature.properties.route;
+  if (route === 'LINK') {
+    return 6;  // Link Light Rail
+  } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
+    return 5;  // Streetcar and RapidRide
+  } else  {
+    return 3;  // Buses
+  }
+}
+
 function render() {
   var bus = svg.append("g");
   bus.selectAll("path")
@@ -123,20 +135,9 @@ function render() {
       .attr("class", "route")
       .on("click", onRouteClicked)
       // Set route color based on transit mode
-      .style("stroke", function(feature) {
-        return getColor(feature);
-       })
+      .style("stroke", getColor)
       // Set width of line based on transit mode
-      .style("stroke-width", function(feature) {
-        var route = feature.properties.route;
-        if (route === 'LINK') {
-          return 6;  // Link Light Rail
-        } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
-          return 5;  // Streetcar and RapidRide
-        } else  {
-          return 3;  // Buses
-        }
-       });
+      .style("stroke-width", getRouteWidth)
  }
 
 function onRouteClicked(params) {
@@ -148,20 +149,22 @@ function onRouteClicked(params) {
   d3.selectAll(".route")
     .filter(function (z) {return self != this;})
     .style("stroke-opacity", newOpacity)
+    .style("stroke-width", getRouteWidth)
     .style('stroke', 'gray');
   // self
   d3.select(this)
     .style("stroke-opacity", 1)
     .style("stroke-width", 6)
-    .style('stroke', function(feature) { return getColor(feature);});
+    .style('stroke', getColor);
 }
 
 function onMapClicked(params) {
   // Reset opacity of everything to 1 (normal)
   // Reset colors to what they were
   d3.selectAll(".route")
-    .style('stroke', function(feature) { return getColor(feature);})
-    .style("stroke-opacity", 1);
+    .style('stroke', getColor)
+    .style("stroke-opacity", 1)
+    .style("stroke-width", getRouteWidth);
 }
 
 /**
