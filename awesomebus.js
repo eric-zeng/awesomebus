@@ -107,10 +107,10 @@ function getColor(feature)
     var padding = '';
     for (var i = 0; i < numPadding; i++) {
       padding += '0'
-  }
-  var color = '#' + padding + hash;
+    }
+    var color = '#' + padding + hash;
     // Darken the final color
-    return d3.rgb(color).darker(Math.random() + 1).toString();
+    return d3.rgb(color).darker(1).toString();
   }
 }
 
