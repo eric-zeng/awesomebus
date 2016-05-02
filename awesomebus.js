@@ -91,6 +91,28 @@ svg.selectAll("g")
 /*****************************************************************************/
 /*******     ROUTE RENDERING        ******************************************/
 /*****************************************************************************/
+function getColor(feature)
+{
+  var route = feature.properties.route;
+  if (route === 'LINK') {
+    return "#2b376c";  // Link Light Rail - blue
+  } else if (route.startsWith('Stcr')) {
+    return "#d67114";  // Seattle Streetcar - orange
+  } else if (route.endsWith('Line')) {
+    return "#cc0000";  // RapidRide - red
+  } else {
+    // Randomly assign colors for bus routes by hashing route number.
+    var hash = (stringHash(route) % 0xFFFFFF).toString(16);
+    var numPadding = 6 - hash.length;
+    var padding = '';
+    for (var i = 0; i < numPadding; i++) {
+      padding += '0'
+  }
+  var color = '#' + padding + hash;
+    // Darken the final color
+    return d3.rgb(color).darker(Math.random() + 1).toString();
+  }
+}
 function render() {
   var bus = svg.append("g");
   bus.selectAll("path")
@@ -102,25 +124,7 @@ function render() {
       .on("click", onRouteClicked)
       // Set route color based on transit mode
       .style("stroke", function(feature) {
-        var route = feature.properties.route;
-        if (route === 'LINK') {
-          return "#2b376c";  // Link Light Rail - blue
-        } else if (route.startsWith('Stcr')) {
-          return "#d67114";  // Seattle Streetcar - orange
-        } else if (route.endsWith('Line')) {
-          return "#cc0000";  // RapidRide - red
-        } else {
-          // Randomly assign colors for bus routes by hashing route number.
-          var hash = (stringHash(route) % 0xFFFFFF).toString(16);
-          var numPadding = 6 - hash.length;
-          var padding = '';
-          for (var i = 0; i < numPadding; i++) {
-            padding += '0'
-          }
-          var color = '#' + padding + hash;
-          // Darken the final color
-          return d3.rgb(color).darker(Math.random() + 1).toString();
-        }
+        return getColor(feature);
        })
       // Set width of line based on transit mode
       .style("stroke-width", function(feature) {
@@ -143,15 +147,20 @@ function onRouteClicked(params) {
   // others
   d3.selectAll(".route")
     .filter(function (z) {return self != this;})
-    .style("stroke-opacity", newOpacity);
+    .style("stroke-opacity", newOpacity)
+    .style('stroke', 'gray');
   // self
   d3.select(this)
-     .style("stroke-opacity", 1);
+    .style("stroke-opacity", 1)
+    .style("stroke-width", 6)
+    .style('stroke', function(feature) { return getColor(feature);});
 }
 
 function onMapClicked(params) {
   // Reset opacity of everything to 1 (normal)
-  d3.selectAll("path")
+  // Reset colors to what they were
+  d3.selectAll(".route")
+    .style('stroke', function(feature) { return getColor(feature);})
     .style("stroke-opacity", 1);
 }
 
