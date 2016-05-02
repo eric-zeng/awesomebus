@@ -140,7 +140,7 @@ function render() {
       .style("stroke-width", getRouteWidth)
  }
 
-function onRouteClicked(params) {
+function onRouteClicked(feature) {
   // Set opacity of every other route to .25
   // Also set opacity of self to 1, in case another route was previously selected
   var self = this;
@@ -156,9 +156,26 @@ function onRouteClicked(params) {
     .style("stroke-opacity", 1)
     .style("stroke-width", 6)
     .style('stroke', getColor);
+
+  moveSelectedRouteToTop(feature.properties.route);
 }
 
-function onMapClicked(params) {
+function onMapClicked() {
+  resetRoutes();
+}
+
+function moveSelectedRouteToTop(route) {
+  d3.selectAll('.route')
+    .sort(function(a, b) {
+      if (a.properties.route != route) {
+        return -1;
+      } else {
+        return 1;
+      }
+    });
+}
+
+function resetRoutes() {
   // Reset opacity of everything to 1 (normal)
   // Reset colors to what they were
   d3.selectAll(".route")
@@ -166,6 +183,33 @@ function onMapClicked(params) {
     .style("stroke-opacity", 1)
     .style("stroke-width", getRouteWidth);
 }
+
+
+/*****************************************************************************/
+/*******    INPUT HANDLING        ********************************************/
+/*****************************************************************************/
+d3.select('#route-input').on('input', function() {
+  if (this.value == '') {
+    resetRoutes();
+    return;
+  }
+
+  // Restyle input route
+  d3.selectAll('.route')
+    .filter(function(feature) { return feature.properties.route !== this.value }.bind(this))
+    .style("stroke-opacity", 0.25)
+    .style("stroke-width", getRouteWidth)
+    .style('stroke', '#6E91B9');
+
+  // Restyle other routes
+  d3.selectAll('.route')
+    .filter(function(feature) { return feature.properties.route === this.value }.bind(this))
+    .style("stroke-opacity", 1)
+    .style("stroke-width", 6)
+    .style('stroke', getColor);
+
+  moveSelectedRouteToTop(this.value);
+});
 
 /**
  * Utility function for randomizing colors
