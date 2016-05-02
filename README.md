@@ -53,7 +53,7 @@ View the storyboard [here](transit-storyboard.pdf?raw=true).
 
 ### Changes between Storyboard and the Final Implementation
 
-- Geo mapping is hard - no panning or zooming. See 'Most Time Consuming Parts' for details.
+- Geo mapping is hard - we did not implement panning or zooming. See 'Most Time Consuming Parts' for details.
 - We ran out of time to implement route selection using selection boxes, but we plan to implement this for the final project
 - Routes traveling on the same street don't appear side-by-side, instead they are stacked. The way d3.geo and SVGs work, we can't do this without modifying the data.
 
@@ -63,7 +63,6 @@ View the storyboard [here](transit-storyboard.pdf?raw=true).
 We spent the first few days just trying to extract the data, load it into the browser, and position it properly on a map. This included:
 
 - Figuring out which of the GTFS tables and fields we needed to query in order to get a correct representation of the bus routes
-- Working around the data’s unexpected quirks
 - Deciding what kind of backend database/server was best, setting those up, and writing API endpoints for querying the data (though we eventually realized that we were better off running queries offline and saving the results to a file, so we scrapped the whole database/server setup)
 
 Once we had our database, server, and query set up, the next major piece of the development process was learning what is easily accessible in d3 and what is not--for example, mapping.
@@ -74,7 +73,8 @@ After we got a rudimentary map working, we split the work into two parts - Eric 
 
 Getting a good map layer took a lot of effort. d3 provides no underlying map, just an API to convert coordinates into SVG paths based on the view of the map. We (Eric) considered and rejected many different options, but we ended up using the static vector tiles example (http://bl.ocks.org/mbostock/5616813), because it was too much work getting anything fancier working, and so we had to drop normal map functions like zooming and panning.
 
-While Eric was working on displaying a map, Lucy was trying to display transit routes. For too many hours, this task was simplified to just drawing a line. <more here; I’ll write this in the morning>
+While Eric was working on displaying a map, Lucy was trying to display transit routes. For too many hours, this task was simplified to just drawing a line. We discovered GeoJson, which seemed perfect for our purposes because it was specifically for representing points and lines with coordinates in an SVG. Eric was able to plot the bus points on the map, but connecting two points took too long, partially due to faulty and confusing tutorials. But eventually, we were able to display bus routes as lines using the GeoJson LineStrings. This lead into the next phase: although the coordinates provided by the dataset had sequence numbers, meaning we did not have to decipher the order ourselves, there were often multiple coordinate pairs for each sequence number, and it appeared that some pairs were missing or badly out of order. We tried multiple ways of deduping the coordinate pairs, but in the end Eric found a field in the data, trip_id, that perfectly delineated the sequence numbers.
+
 
 The first four pieces of the process took longer than expected, but finally, we focused our efforts on the interactive part of our application: allowing the user to select transit routes in different ways, and making sure the routes were rendered in a way that would make the most sense to the viewer.
 
@@ -83,7 +83,7 @@ First, we assigned the bus routes random colors so that they can be distinguishe
 ### Most Time Consuming parts
 Drawing a single line on the map took an incredible amount of time. I (Lucy) think this was a combination of the fact that I had no previous web development experience and the fact that many online d3 tutorials are surprisingly sparse on the comments, which makes abstracting away the useful parts extremely difficult. This was a common and disappointing theme throughout the project. On top of that, some of the tutorials on using GeoJson’s LineString for mapping simply did not work. Thankfully, the pace of work increased rapidly once I started drawing lines.
 
-Another issue we encountered was misleading bus route data. <blah blah blah -- I’ll write this in the morning--multiple sequency numbers … etc>
+Another issue we encountered was misleading bus route data. GTFS has a series of fields to help shape a route (stored in shapes.txt), which includes, most importantly, latitude-longitude pairs and a sequence number, which match up with route ids. However, there are frequently more than one unique latitude-longitude pair for each sequence number, because these are also tied to two other fields. Mapping all coordinate pairs for a route meant that there were bus lines drawn where there were no streets because of what appeared to be missing route data, and the lines often jump around within in the route, indicating that the sequencing of the coordinate pairs is sometimes incorrect. We eventually determined that we needed to dedup the data using a different field, trip_id, and that the routes would perfectly follow streets once we did so.
 
 Displaying good underlying map data was also huge pain. As noted above, d3 doesn’t have a standard way to display a map with roads, land, and water, so we had to scavenge the internet for ways to do it. Similar to drawing lines, there were not a lot of specific, well documented instructions on how to do this common task. Here are the things that Eric tried and failed at:
 - Downloading all of the street data for King County and hosting it ourselves (too big),
@@ -95,3 +95,8 @@ Displaying good underlying map data was also huge pain. As noted above, d3 doesn
 - Eric: Map setup, background map layer, some route debugging, offline data extraction, current serverless architecture, route coloring, text query-based route selection
 - Lucy: Database setup, original Flask server development, query construction, route drawing, route debugging, click-based route selection
 - Total man-hours: 62
+
+### Future work (starting points for the final project)
+- Allow the user to select multiple routes
+- Allow the user to draw a selection box/area and select all routes that pass through that
+- Implement panning and zooming (may just involve using d3 plug-in Leaflet)
