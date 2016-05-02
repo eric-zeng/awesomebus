@@ -6,6 +6,9 @@
 var routes = [];  // All route data. To be populated by routePathData.json
 var selectedRoutes = []; //  Subset of routeData that is currently selected.
 
+//Global var to keep track of whether something is selected:
+var selected = false;
+
 // Pull in processed KC Metro GTFS data
 d3.json('data/routePathData.json', function(err, data) {
   // Convert data to GeoJSON format
@@ -59,6 +62,7 @@ svg.selectAll("g")
       .scale(projection.scale() * 2 * Math.PI)
       .translate(projection([0, 0])))
   .enter().append("g")
+    .on("click", onMapClicked)
     .each(function(d) {
       var g = d3.select(this);
       // Pick OpenStreetMap server shard
@@ -77,6 +81,7 @@ svg.selectAll("g")
           g.selectAll("path")
               .data(allData)
             .enter().append("path")
+              .on("click", onMapClicked)
               .attr("class", function(d) { return d.properties.kind; })
               .attr("d", geoPath);
         });
@@ -131,7 +136,23 @@ function render() {
  }
 
 function onRouteClicked(params) {
-  console.log(params);
+  // Set opacity of every other route to .25
+  // Also set opacity of self to 1, in case another route was previously selected
+  var self = this;
+  var newOpacity = .25;
+  // others
+  d3.selectAll(".route")
+    .filter(function (z) {return self != this;})
+    .style("stroke-opacity", newOpacity);
+  // self
+  d3.select(this)
+     .style("stroke-opacity", 1);
+}
+
+function onMapClicked(params) {
+  // Reset opacity of everything to 1 (normal)
+  d3.selectAll("path")
+    .style("stroke-opacity", 1);
 }
 
 /**
