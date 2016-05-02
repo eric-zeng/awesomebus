@@ -218,6 +218,8 @@ d3.select('#route-input').on('input', function() {
   moveSelectedRouteToTop(this.value);
 });
 
+d3.select('#reset').on('click', resetRoutes);
+
 /**
  * Utility function for randomizing colors
  * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
