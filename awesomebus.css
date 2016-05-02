@@ -33,23 +33,24 @@ body {
   position: absolute;
   z-index: 2;
 
-  bottom: 30px;
-  left: 30px;
-  height: 150px;
+  bottom: 25px;
+  left: 25px;
+  height: 160px;
   width: 250px;
 
   background-color: #FDFCF8;
   box-shadow: 0px 0px 5px 2px #39616F;
   border-radius: 2px;
+  padding: 10px;
 }
 
 #route-input {
-  margin: 6px;
+  margin: 6px 0;
   padding: 3px;
   border: none;
   border-bottom: solid 2px green;
   font-size: 16px;
-  width: 228px;
+  width: 220px;
 }
 
 #route-input:focus {
@@ -60,13 +61,20 @@ body {
   visibility: hidden;
 }
 
-#selected-heading {
+h3 {
   color: green;
   font-size: 18px;
   font-weight: normal;
-  margin: 8px 6px;
+  margin: 6px 0;
 }
 
 #selected-text {
-  margin: 6px 10px;
+  margin: 8px 4px;
+}
+
+#source {
+  position: absolute;
+  bottom: 8px;
+  font-size: 10px;
+  color: #474747;
 }
