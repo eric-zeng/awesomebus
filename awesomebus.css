@@ -1,3 +1,7 @@
+html {
+  font-family: sans-serif;
+}
+
 body {
   margin: 0;
 }
@@ -46,4 +50,23 @@ body {
   border-bottom: solid 2px green;
   font-size: 16px;
   width: 228px;
+}
+
+#route-input:focus {
+  outline: none;
+}
+
+#selected-route {
+  visibility: hidden;
+}
+
+#selected-heading {
+  color: green;
+  font-size: 18px;
+  font-weight: normal;
+  margin: 8px 6px;
+}
+
+#selected-text {
+  margin: 6px 10px;
 }

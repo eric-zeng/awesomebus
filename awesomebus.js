@@ -62,7 +62,7 @@ svg.selectAll("g")
       .scale(projection.scale() * 2 * Math.PI)
       .translate(projection([0, 0])))
   .enter().append("g")
-    .on("click", onMapClicked)
+    .on("click", resetRoutes)
     .each(function(d) {
       var g = d3.select(this);
       // Pick OpenStreetMap server shard
@@ -81,7 +81,7 @@ svg.selectAll("g")
           g.selectAll("path")
               .data(allData)
             .enter().append("path")
-              .on("click", onMapClicked)
+              .on("click", resetRoutes)
               .attr("class", function(d) { return d.properties.kind; })
               .attr("d", geoPath);
         });
@@ -141,6 +141,7 @@ function render() {
  }
 
 function onRouteClicked(feature) {
+  setSelectedRoute(feature.properties.route);
   // Set opacity of every other route to .25
   // Also set opacity of self to 1, in case another route was previously selected
   var self = this;
@@ -160,11 +161,9 @@ function onRouteClicked(feature) {
   moveSelectedRouteToTop(feature.properties.route);
 }
 
-function onMapClicked() {
-  resetRoutes();
-}
-
 function moveSelectedRouteToTop(route) {
+  // TODO: optimize this. This is slow because we loop through 218 routes every
+  // time routes are selected, or something is typed.
   d3.selectAll('.route')
     .sort(function(a, b) {
       if (a.properties.route != route) {
@@ -175,39 +174,47 @@ function moveSelectedRouteToTop(route) {
     });
 }
 
-function resetRoutes() {
-  // Reset opacity of everything to 1 (normal)
-  // Reset colors to what they were
-  d3.selectAll(".route")
-    .style('stroke', getColor)
-    .style("stroke-opacity", 1)
-    .style("stroke-width", getRouteWidth);
+function setSelectedRoute(route) {
+  d3.select('#selected-text').html(route);
+  d3.select('#selected-route').style('visibility', 'visible');
 }
 
+function unsetSelectedRoute() {
+  d3.select('#selected-route').style('visibility', 'hidden');
+}
 
-/*****************************************************************************/
-/*******    INPUT HANDLING        ********************************************/
-/*****************************************************************************/
+function resetRoutes() {
+  d3.selectAll(".route")
+    .sort(d3.ascending)          // Reset z-ordering
+    .style('stroke', getColor)   // Reset colors
+    .style("stroke-opacity", 1)  // Reset opacity
+    .style("stroke-width", getRouteWidth);  // Reset width
+
+  unsetSelectedRoute();
+  document.getElementById('route-input').value = '';
+}
+
 d3.select('#route-input').on('input', function() {
   if (this.value == '') {
     resetRoutes();
     return;
   }
 
-  // Restyle input route
+  // Restyle other routes
   d3.selectAll('.route')
     .filter(function(feature) { return feature.properties.route !== this.value }.bind(this))
     .style("stroke-opacity", 0.25)
     .style("stroke-width", getRouteWidth)
     .style('stroke', '#6E91B9');
 
-  // Restyle other routes
+  // Restyle input routes
   d3.selectAll('.route')
     .filter(function(feature) { return feature.properties.route === this.value }.bind(this))
     .style("stroke-opacity", 1)
     .style("stroke-width", 6)
     .style('stroke', getColor);
 
+  unsetSelectedRoute();
   moveSelectedRouteToTop(this.value);
 });
 
