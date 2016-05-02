@@ -100,3 +100,4 @@ Displaying good underlying map data was also huge pain. As noted above, d3 doesn
 - Allow the user to select multiple routes
 - Allow the user to draw a selection box/area and select all routes that pass through that
 - Implement panning and zooming (may just involve using d3 plug-in Leaflet)
+- Implement better color generation (currently routes with numbers close to each other have similar numbers)
