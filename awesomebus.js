@@ -150,7 +150,7 @@ function onRouteClicked(params) {
     .filter(function (z) {return self != this;})
     .style("stroke-opacity", newOpacity)
     .style("stroke-width", getRouteWidth)
-    .style('stroke', 'gray');
+    .style('stroke', '#6E91B9');
   // self
   d3.select(this)
     .style("stroke-opacity", 1)
