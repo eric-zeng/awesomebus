@@ -5,6 +5,7 @@
 /*****************************************************************************/
 var routes = [];  // All route data. To be populated by routePathData.json
 var selectedRoutes = []; //  Subset of routeData that is currently selected.
+var currentlySelectedRoutes = [] // errr .. how exactly is this different from selectedRoutes? can we merge these?
 
 //Global var to keep track of whether something is selected:
 var selected = false;
@@ -148,7 +149,17 @@ function onRouteClicked(feature) {
   var newOpacity = .25;
   // others
   d3.selectAll(".route")
-    .filter(function (z) {return self != this;})
+      .filter(function (feature) 
+      {
+        // Filter out routes that are not currently selected
+        for (var i = 0; i < currentlySelectedRoutes.length; i++)
+        {
+          if (currentlySelectedRoutes[i] == feature.properties.route)
+            return false;
+        }
+        return self != this;
+
+      })
     .style("stroke-opacity", newOpacity)
     .style("stroke-width", getRouteWidth)
     .style('stroke', '#6E91B9');
@@ -175,12 +186,28 @@ function moveSelectedRouteToTop(route) {
 }
 
 function setSelectedRoute(route) {
-  d3.select('#selected-text').html(route);
+
+  var updatedRoutes = d3.select('#selected-text').html();
+  if (updatedRoutes == '')
+  {
+    updatedRoutes = route;
+  }
+  else
+  {
+    updatedRoutes += ", " + route
+  }
+  d3.select('#selected-text').html(updatedRoutes);
   d3.select('#selected-route').style('visibility', 'visible');
+
+  currentlySelectedRoutes.push(route);
+
 }
 
 function unsetSelectedRoute() {
   d3.select('#selected-route').style('visibility', 'hidden');
+  d3.select('#selected-text').html('');
+  currentlySelectedRoutes = [];
+
 }
 
 function resetRoutes() {
