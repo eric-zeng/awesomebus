@@ -5,9 +5,10 @@
 /*****************************************************************************/
 var routes = [];  // All route data. To be populated by routePathData.json
 var selectedRoutes = []; //  Subset of routeData that is currently selected.
-var currentlySelectedRoutes = [] // errr .. how exactly is this different from selectedRoutes? can we merge these?
-var routeIntersections = {}
-
+var currentlySelectedRoutes = []; // errr .. how exactly is this different from selectedRoutes? can we merge these?
+var routeIntersections = {};
+var rectXY_0 = [0, 0];
+var rectXY_1 = [0, 0];
 
 // Pull in processed KC Metro GTFS data
 d3.json('data/routePathData.json', function(err, data) {
@@ -57,7 +58,6 @@ d3.json('data/intersections.json', function (err, data) {
         }        
       };
       intersectingRoutes.push(intersectingRouteFeature);
-      console.log("route: " + data[route][i]);
     }
     routeIntersections[route] = intersectingRoutes;
   }
@@ -229,15 +229,8 @@ function resetRoutes() {
 /*******     EVENT HANDERS        ********************************************/
 /*****************************************************************************/
 function onRouteClicked(feature) {
-  //console.log("selecting route: " + feature.properties.route);
   setSelectedRoute(feature.properties.route);
-  //for (var i = 0; i < currentlySelectedRoutes.length; i++)
-  //{
-  //  console.log("  currently selected route: " + currentlySelectedRoutes[i]);
-  //}
-  // Set opacity of every other route to .25
-  // Also set opacity of self to 1, in case another route was previously selected
-  var self = this;
+
   var newOpacity = .25;
   // others
   d3.selectAll(".route")
@@ -281,6 +274,157 @@ function onRouteDoubleClicked(feature) {
   }
 }
 
+// helper func to truncate coordinates
+function getLessPreciseCoords(coords) {
+  var x = coords[0].toFixed(6);
+  var y = coords[1].toFixed(6);
+  return [x,y];
+}
+
+function findRoutesInRect() {
+  if (rectXY_0 == [0, 0] || rectXY_1 == [0, 0])
+    return;
+
+  // This gives us lots more precision than we have (eg 47.65927138109102)
+  // our coordinates are typically more like 47.6740875 (7 digits)
+  var coords0 = getLessPreciseCoords(rectXY_0);
+  var coords1 = getLessPreciseCoords(rectXY_1);
+
+  // Figure out how the box is oriented.
+  var lower_longitude; //left
+  var higher_longitude; // right
+  var lower_latitude;
+  var higher_latitude;  //lower
+
+  if (coords0[0] < coords1[0]) {
+    lower_longitude = coords0[0];
+    higher_longitude = coords1[0];
+  }
+  else {
+    lower_longitude = coords1[0];
+    higher_longitude = coords0[0];
+  }
+  if (coords0[1] < coords1[1]) {
+    lower_latitude = coords0[1];
+    higher_latitude = coords1[1];
+  }
+  else {
+    lower_latitude = coords1[1];
+    higher_latitude = coords0[1];
+  }
+    
+  // Search for routes with the same coordinates
+  var intersectingRoutes = []
+  for (var i = 0; i < routes.length; i++) {
+    var geometry = routes[i].geometry.coordinates;
+    for (var j = 0; j < geometry.length; j++) {
+        var long = geometry[j][0];
+        var lat = geometry[j][1];
+        if (long <= higher_longitude 
+            && long >= lower_longitude
+            && lat <= higher_latitude
+            && lat >= lower_latitude) {
+
+          onRouteClicked(routes[i]);
+          // We found at least one coord in the box; don't need to look through the rest.
+          break;
+        }
+
+    }    
+  }
+
+  rectXY_0 = [0, 0];
+  rectXY_1 = [0, 0]
+}
+
+
+
+
+/*****************************************************************************/
+/*******     SELECTION BOX  DRAWING      *************************************/
+/*****************************************************************************/
+ // code (slightly) modified from http://bl.ocks.org/lgersman/5311083
+
+ function svg_onmousedown_drawrect() {
+    var p = d3.mouse( this);
+
+    svg.append( "rect")
+    .attr({
+        rx      : 6,
+        ry      : 6,
+        class   : "selection",
+        x       : p[0],
+        y       : p[1],
+        width   : 0,
+        height  : 0
+    })
+
+    // Add starting x, y to  global var
+    rectXY_0 = projection.invert(p);
+
+}
+
+function svg_onmousemove_drawrect() {
+    var s = svg.select( "rect.selection");
+
+    if( !s.empty()) {
+        var p = d3.mouse( this),
+            d = {
+                x       : parseInt( s.attr( "x"), 10),
+                y       : parseInt( s.attr( "y"), 10),
+                width   : parseInt( s.attr( "width"), 10),
+                height  : parseInt( s.attr( "height"), 10)
+            },
+            move = {
+                x : p[0] - d.x,
+                y : p[1] - d.y
+            }
+        ;
+        if( move.x < 1 || (move.x*2<d.width)) {
+            d.x = p[0];
+            d.width -= move.x;
+        } else {
+            d.width = move.x;       
+        }
+
+        if( move.y < 1 || (move.y*2<d.height)) {
+            d.y = p[1];
+            d.height -= move.y;
+        } else {
+            d.height = move.y;       
+        }
+       
+        s.attr( d);
+
+    }
+}
+
+function svg_onmouseup_drawrect() {
+    // remove selection frame
+    svg.selectAll( "rect.selection").remove();
+
+    // remove temporary selection marker class
+    d3.selectAll( 'g.state.selection').classed( "selection", false);
+
+    svg.selectAll( 'g.state.selection.selected route')
+       .style("stroke-width", 10);
+    d3.selectAll( 'g.state.selection.selected route')
+      .style("stroke-width", 10);
+
+    // Add ending x,y to global var
+    rectXY_1 = projection.invert(d3.mouse(this));
+    findRoutesInRect();
+}
+
+// Add ability to draw selection box on svg
+svg
+.on( "mousedown", svg_onmousedown_drawrect)
+.on( "mousemove", svg_onmousemove_drawrect)
+.on( "mouseup", svg_onmouseup_drawrect);
+
+/*****************************************************************************/
+/*******     END EVENT HANDERS        ****************************************/
+/*****************************************************************************/
 
 d3.select('#route-input').on('input', function() {
   if (this.value == '') {
