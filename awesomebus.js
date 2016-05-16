@@ -6,9 +6,8 @@
 var routes = [];  // All route data. To be populated by routePathData.json
 var selectedRoutes = []; //  Subset of routeData that is currently selected.
 var currentlySelectedRoutes = [] // errr .. how exactly is this different from selectedRoutes? can we merge these?
+var routeIntersections = {}
 
-//Global var to keep track of whether something is selected:
-var selected = false;
 
 // Pull in processed KC Metro GTFS data
 d3.json('data/routePathData.json', function(err, data) {
@@ -31,6 +30,37 @@ d3.json('data/routePathData.json', function(err, data) {
   routes = features;
   selectedRoutes = features;
   render();
+});
+
+// Pull in route intersection data
+d3.json('data/intersections.json', function (err, data) {
+  if (err) 
+    return console.warn(err);
+  // This data needs to have the same shape as the route data, even though this is just route numbers.
+  // I didn't include coordinates in the data (which would go into the LineString portion, as above),
+  // so just omit that. The important part is that it have the shape feature.properties.route = route number.
+  for (var route in data) {
+    var routeFeature = {
+      "type": "Feature",
+      properties: {
+        "route": route
+      }
+    };
+    // inside loop to make arr of intersecting routes for this one particular route
+    var intersectingRoutes = []
+    for (var i = 0; i < data[route].length; i++) {
+
+      var intersectingRouteFeature = {
+        "type": "Feature",
+        properties: {
+          "route": data[route][i].properties.route
+        }        
+      };
+      intersectingRoutes.push(intersectingRouteFeature);
+      console.log("route: " + data[route][i]);
+    }
+    routeIntersections[route] = intersectingRoutes;
+  }
 });
 
 /*****************************************************************************/
@@ -107,8 +137,7 @@ function getColor(feature)
     var numPadding = 6 - hash.length;
     var padding = '';
     for (var i = 0; i < numPadding; i++) {
-      padding += '0'
-    }
+      padding += '0'    }
     var color = '#' + padding + hash;
     // Darken the final color
     return d3.rgb(color).darker(1).toString();
@@ -135,42 +164,12 @@ function render() {
       .attr("d", geoPath)
       .attr("class", "route")
       .on("click", onRouteClicked)
+      .on("dblclick", onRouteDoubleClicked)
       // Set route color based on transit mode
       .style("stroke", getColor)
       // Set width of line based on transit mode
       .style("stroke-width", getRouteWidth)
  }
-
-function onRouteClicked(feature) {
-  setSelectedRoute(feature.properties.route);
-  // Set opacity of every other route to .25
-  // Also set opacity of self to 1, in case another route was previously selected
-  var self = this;
-  var newOpacity = .25;
-  // others
-  d3.selectAll(".route")
-      .filter(function (feature) 
-      {
-        // Filter out routes that are not currently selected
-        for (var i = 0; i < currentlySelectedRoutes.length; i++)
-        {
-          if (currentlySelectedRoutes[i] == feature.properties.route)
-            return false;
-        }
-        return self != this;
-
-      })
-    .style("stroke-opacity", newOpacity)
-    .style("stroke-width", getRouteWidth)
-    .style('stroke', '#6E91B9');
-  // self
-  d3.select(this)
-    .style("stroke-opacity", 1)
-    .style("stroke-width", 6)
-    .style('stroke', getColor);
-
-  moveSelectedRouteToTop(feature.properties.route);
-}
 
 function moveSelectedRouteToTop(route) {
   // TODO: optimize this. This is slow because we loop through 218 routes every
@@ -188,12 +187,17 @@ function moveSelectedRouteToTop(route) {
 function setSelectedRoute(route) {
 
   var updatedRoutes = d3.select('#selected-text').html();
-  if (updatedRoutes == '')
-  {
+  // check to see if route is already selected.
+  var updatedRoutesList = updatedRoutes.split(", ");
+  for (var i = 0; i < updatedRoutesList.length; i++) {
+    if (route == updatedRoutesList[i])
+      return;
+  }
+
+  if (updatedRoutes == '') {
     updatedRoutes = route;
   }
-  else
-  {
+  else {
     updatedRoutes += ", " + route
   }
   d3.select('#selected-text').html(updatedRoutes);
@@ -220,6 +224,63 @@ function resetRoutes() {
   unsetSelectedRoute();
   document.getElementById('route-input').value = '';
 }
+
+/*****************************************************************************/
+/*******     EVENT HANDERS        ********************************************/
+/*****************************************************************************/
+function onRouteClicked(feature) {
+  //console.log("selecting route: " + feature.properties.route);
+  setSelectedRoute(feature.properties.route);
+  //for (var i = 0; i < currentlySelectedRoutes.length; i++)
+  //{
+  //  console.log("  currently selected route: " + currentlySelectedRoutes[i]);
+  //}
+  // Set opacity of every other route to .25
+  // Also set opacity of self to 1, in case another route was previously selected
+  var self = this;
+  var newOpacity = .25;
+  // others
+  d3.selectAll(".route")
+    .filter(function (feature) {
+      // Check through the list of currently selected routes
+      // if this route is on the list, do NOT filter
+      for (var i = 0; i < currentlySelectedRoutes.length; i++) {
+        if (currentlySelectedRoutes[i] == feature.properties.route) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .style("stroke-opacity", newOpacity)
+    .style("stroke-width", getRouteWidth)
+    .style('stroke', '#6E91B9');
+  // self
+  d3.selectAll(".route")
+    .filter(function (feature) {
+
+      for (var i = 0; i < currentlySelectedRoutes.length; i++) {
+        if (currentlySelectedRoutes[i] == feature.properties.route) {
+          return true;
+        }
+      }
+      return false;
+    })
+    .style("stroke-opacity", 1)
+    .style("stroke-width", 6)
+    .style('stroke', getColor); 
+    
+  moveSelectedRouteToTop(feature.properties.route);
+}
+
+function onRouteDoubleClicked(feature) {
+  var intersectingRoutes = routeIntersections[feature.properties.route];
+  for (var i = 0; i < intersectingRoutes.length; i++)
+  {
+    var intersectingRoute = intersectingRoutes[i];
+    onRouteClicked(intersectingRoute);
+  }
+}
+
 
 d3.select('#route-input').on('input', function() {
   if (this.value == '') {
