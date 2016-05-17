@@ -10,6 +10,12 @@ var routeIntersections = {};
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
 
+
+// Define the div for the tooltip
+var div = d3.select("body").append("div") 
+    .attr("class", "tooltip")       
+    .style("opacity", 0);
+
 // Pull in processed KC Metro GTFS data
 d3.json('data/routePathData.json', function(err, data) {
   // Convert data to GeoJSON format
@@ -165,6 +171,8 @@ function render() {
       .attr("class", "route")
       .on("click", onRouteClicked)
       .on("dblclick", onRouteDoubleClicked)
+      .on("mouseover", onRouteMousedOver)
+      .on("mouseout", onRouteMouseOut)
       // Set route color based on transit mode
       .style("stroke", getColor)
       // Set width of line based on transit mode
@@ -193,12 +201,14 @@ function setSelectedRoute(route) {
     if (route == updatedRoutesList[i])
       return;
   }
-
+//<a href="http://www.w3schools.com">Visit W3Schools</a>
+  var routeHref = '<a href="' + makeRouteLink(route) + '">' + route + '</a> ';
+  console.log(routeHref);
   if (updatedRoutes == '') {
-    updatedRoutes = route;
+    updatedRoutes = routeHref;
   }
   else {
-    updatedRoutes += ", " + route
+    updatedRoutes += ", " + routeHref
   }
   d3.select('#selected-text').html(updatedRoutes);
   d3.select('#selected-route').style('visibility', 'visible');
@@ -272,6 +282,51 @@ function onRouteDoubleClicked(feature) {
     var intersectingRoute = intersectingRoutes[i];
     onRouteClicked(intersectingRoute);
   }
+}
+
+function makeRouteLink(route) {
+
+  var routenum = route.toString();
+  if (routenum.length == 1) {
+    routenum = "00" + routenum;
+  }
+  if (routenum.length == 2) {
+    routenum = "0" + routenum;
+  }
+
+  var link = "http://kingcounty.gov/depts/transportation/metro/schedules-maps/";
+  var extension = ".aspx";
+  
+  return link + routenum + extension;
+}
+function onRouteMousedOver(feature) {
+  // check if route is selected
+  for (var i = 0; i < currentlySelectedRoutes.length; i++) {
+    if (feature.properties.route == currentlySelectedRoutes[i]) {
+        // can't actually click on the link in the tooltip ... TODO, make this work.
+        var routeHref = '<a href="' + makeRouteLink(feature.properties.route) + '">' + feature.properties.route + '</a> ';
+
+        // show a tooltip with the route name
+          div.transition()   
+            .duration(200)    
+            .style("opacity", .95);    
+          div.html(feature.properties.route) 
+          //div.html(routeHref) 
+            .style("left", (d3.event.pageX) + "px")   
+            .style("top", (d3.event.pageY - 28) + "px");  
+    }
+  }
+}
+
+function hideToolTip() {
+  div.transition()    
+    .duration(500)    
+    .style("opacity", 0); 
+}
+function onRouteMouseOut(d) {   
+  // TODO - set actual delay and make this link actually do a thinggggggg
+  window.setTimeout(hideToolTip, 0);
+
 }
 
 // helper func to truncate coordinates
