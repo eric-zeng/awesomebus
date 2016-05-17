@@ -9,7 +9,7 @@ var currentlySelectedRoutes = []; // errr .. how exactly is this different from 
 var routeIntersections = {};
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
-
+var numTotalRoutes = 0;
 
 // Define the div for the tooltip
 var div = d3.select("body").append("div") 
@@ -36,6 +36,7 @@ d3.json('data/routePathData.json', function(err, data) {
   // Set global variables
   routes = features;
   selectedRoutes = features;
+  numTotalRoutes = routes.length;
   render();
 });
 
@@ -192,6 +193,20 @@ function moveSelectedRouteToTop(route) {
     });
 }
 
+function makeTextboxRouteText() {
+  var routeHref = "";
+  var routeText = "";
+  for (var i = 0; i < currentlySelectedRoutes.length; i++) {
+    routeHref = '<a href="' + makeRouteURL(currentlySelectedRoutes[i]) + '">' + currentlySelectedRoutes[i] + '</a> ';
+    if (routeText == '') {
+      routeText = routeHref;
+    }
+    else {
+      routeText += ", " + routeHref
+    }
+  }
+  return routeText;
+}
 function setSelectedRoute(route) {
 
   var updatedRoutes = d3.select('#selected-text').html();
@@ -200,24 +215,17 @@ function setSelectedRoute(route) {
   for (var i = 0; i < updatedRoutesList.length; i++) {
     if (route == updatedRoutesList[i])
       return;
-  }
-//<a href="http://www.w3schools.com">Visit W3Schools</a>
-  var routeHref = '<a href="' + makeRouteLink(route) + '">' + route + '</a> ';
-  console.log(routeHref);
-  if (updatedRoutes == '') {
-    updatedRoutes = routeHref;
-  }
-  else {
-    updatedRoutes += ", " + routeHref
-  }
-  d3.select('#selected-text').html(updatedRoutes);
-  d3.select('#selected-route').style('visibility', 'visible');
+  }  
 
   currentlySelectedRoutes.push(route);
 
+  d3.select('#selected-text').html(makeTextboxRouteText());
+  d3.select('#selected-route').style('visibility', 'visible');
+
 }
 
-function unsetSelectedRoute() {
+
+function unsetSelectedRoutes() {
   d3.select('#selected-route').style('visibility', 'hidden');
   d3.select('#selected-text').html('');
   currentlySelectedRoutes = [];
@@ -231,48 +239,72 @@ function resetRoutes() {
     .style("stroke-opacity", 1)  // Reset opacity
     .style("stroke-width", getRouteWidth);  // Reset width
 
-  unsetSelectedRoute();
+  unsetSelectedRoutes();
   document.getElementById('route-input').value = '';
 }
 
+function isRouteCurrentlySelected(route) {
+  // If ALL the routes are selected, it doesn't count.
+  if (numTotalRoutes == currentlySelectedRoutes.length) {
+    return false;
+  }
+  for (var i = 0; i < currentlySelectedRoutes.length; i++) {
+    if (currentlySelectedRoutes[i] == route) {
+      return true;
+    }
+  }
+  return false;
+}
 /*****************************************************************************/
 /*******     EVENT HANDERS        ********************************************/
 /*****************************************************************************/
 function onRouteClicked(feature) {
-  setSelectedRoute(feature.properties.route);
-
+  // Select or unselect this route?
   var newOpacity = .25;
-  // others
-  d3.selectAll(".route")
-    .filter(function (feature) {
-      // Check through the list of currently selected routes
-      // if this route is on the list, do NOT filter
-      for (var i = 0; i < currentlySelectedRoutes.length; i++) {
-        if (currentlySelectedRoutes[i] == feature.properties.route) {
-          return false;
-        }
-      }
-      return true;
-    })
-    .style("stroke-opacity", newOpacity)
-    .style("stroke-width", getRouteWidth)
-    .style('stroke', '#6E91B9');
-  // self
-  d3.selectAll(".route")
-    .filter(function (feature) {
 
-      for (var i = 0; i < currentlySelectedRoutes.length; i++) {
-        if (currentlySelectedRoutes[i] == feature.properties.route) {
-          return true;
-        }
-      }
-      return false;
-    })
-    .style("stroke-opacity", 1)
-    .style("stroke-width", 6)
-    .style('stroke', getColor); 
+  if (! isRouteCurrentlySelected(feature.properties.route))
+  {
+    setSelectedRoute(feature.properties.route);
+
+    // others
+    d3.selectAll(".route")
+      .filter(function (feature) {
+        return !isRouteCurrentlySelected(feature.properties.route);
+      })
+      .style("stroke-opacity", newOpacity)
+      .style("stroke-width", getRouteWidth)
+      .style('stroke', '#6E91B9');
+    // self
+    d3.selectAll(".route")
+      .filter(function (feature) {
+        return isRouteCurrentlySelected(feature.properties.route);
+      })
+      .style("stroke-opacity", 1)
+      .style("stroke-width", 6)
+      .style('stroke', getColor); 
     
-  moveSelectedRouteToTop(feature.properties.route);
+    moveSelectedRouteToTop(feature.properties.route);
+  }
+  else {
+    // if we're unselecting the only route, just reset everything.
+    if (currentlySelectedRoutes.length == 1) {
+      resetRoutes();
+    }
+    else {
+      var index = currentlySelectedRoutes.indexOf(feature.properties.route);
+      if (index > -1) {
+        currentlySelectedRoutes.splice(index, 1);
+      }
+      d3.select(this)
+        .style("stroke-opacity", newOpacity)
+        .style("stroke-width", getRouteWidth)
+        .style('stroke', '#6E91B9');
+
+      // show new textbox
+      d3.select('#selected-text').html(makeTextboxRouteText());
+      d3.select('#selected-route').style('visibility', 'visible');
+    }
+  }
 }
 
 function onRouteDoubleClicked(feature) {
@@ -284,16 +316,22 @@ function onRouteDoubleClicked(feature) {
   }
 }
 
-function makeRouteLink(route) {
+function makeRouteURL(route) {
 
   var routenum = route.toString();
   if (routenum.length == 1) {
     routenum = "00" + routenum;
   }
-  if (routenum.length == 2) {
+  else if (routenum.length == 2) {
     routenum = "0" + routenum;
   }
-
+  // a line, c line, etc
+  else if (routenum.indexOf(" ") != -1) {
+    routenum = routenum.replace(" ", "-");
+  }
+  else if (routenum == "LINK") {
+    return "http://www.soundtransit.org/schedules/light-rail/link-light-rail/weekday/outbound"
+  }
   var link = "http://kingcounty.gov/depts/transportation/metro/schedules-maps/";
   var extension = ".aspx";
   
@@ -304,7 +342,7 @@ function onRouteMousedOver(feature) {
   for (var i = 0; i < currentlySelectedRoutes.length; i++) {
     if (feature.properties.route == currentlySelectedRoutes[i]) {
         // can't actually click on the link in the tooltip ... TODO, make this work.
-        var routeHref = '<a href="' + makeRouteLink(feature.properties.route) + '">' + feature.properties.route + '</a> ';
+        var routeHref = '<a href="' + makeRouteURL(feature.properties.route) + '">' + feature.properties.route + '</a> ';
 
         // show a tooltip with the route name
           div.transition()   
@@ -501,7 +539,7 @@ d3.select('#route-input').on('input', function() {
     .style("stroke-width", 6)
     .style('stroke', getColor);
 
-  unsetSelectedRoute();
+  unsetSelectedRoutes();
   moveSelectedRouteToTop(this.value);
 });
 
