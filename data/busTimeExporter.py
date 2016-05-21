@@ -44,13 +44,21 @@ class Route:
         self.name = name
         self.trips = [timeblock]
         self.times = []
-
+        self.stringedTimes = []
 
     def __eq__(self, other):
         if type(other) != type(self):
             return False
         return self.name == other.name
     
+    def stringifyTimes(self):
+        for time in self.times:
+            # want to store date as a 4-digit number (string): HHMM
+            startString = str("%.2d%.2d" %(time.start.hour, time.start.minute))
+            endString = str("%.2d%.2d" %(time.end.hour, time.end.minute))
+            self.stringedTimes.append([startString, endString])
+
+
     def cullStartEndTimes(self, trips=None, times=None):
         if trips == None:
             trips = self.trips
@@ -60,11 +68,16 @@ class Route:
         while madeModification:
             madeModification, times = self.cullStartEndTimes_helper(times)
 
+        #madeModification, times = self.combineCloseTimes(times)
+        #while madeModification:
+        #    madeModification, times = self.combineCloseTimes(times)
+
         self.times = times
 
 
 
     def cullStartEndTimes_helper(self, trips):
+        ONE_HOUR = 60 * 60 # in seconds
         times  = []
         for trip in trips:
             if len(times) == 0:
@@ -75,9 +88,24 @@ class Route:
             newBlockOfTime = True
             for i in range(len(times)):
                 temp_time = times[i]
+                # If the trips are the same, or the trip is wholely inside the time, do nothing
                 if trip.start >= temp_time.start and trip.end <=temp_time.end:
                     newBlockOfTime = False
                     break
+                # if this trip is within one hour of the time, extend the time.
+                if trip.start > temp_time.end:
+                    diff = (trip.start - temp_time.end).seconds
+                    if diff <= ONE_HOUR:
+                        times[i].end = trip.end
+                        newBlockOfTime = False
+                        break
+                else:
+                    diff = (temp_time.start - trip.end).seconds
+                    if diff <= ONE_HOUR:
+                        times[i].start = trip.start
+                        newBlockOfTime = False
+                        break
+
                 # If the start in this trip is between the start and end of this time,
                 # and if the end of this trip is AFTER the end of this time, replace the time.end with trip.end 
                 # (lengthen the time block)
@@ -168,16 +196,11 @@ for row in rows:
 
 for r in routes:
     r.cullStartEndTimes()
-    print "ROUTE NAME: ", r.name
-    for time in r.times:
-        print time
+    r.stringifyTimes()
 
-    print
-    print
-    print
+    export[r.name] = r.stringedTimes
 
 
 
 
-
-#json.dump(export, export_file)
+json.dump(export, export_file)

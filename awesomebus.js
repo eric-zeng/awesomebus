@@ -4,23 +4,36 @@
 /*******     DATA       ******************************************************/
 /*****************************************************************************/
 var routes = [];  // All route data. To be populated by routePathData.json
-var selectedRoutes = []; //  Subset of routeData that is currently selected.
 var currentlySelectedRoutes = []; // errr .. how exactly is this different from selectedRoutes? can we merge these?
+var visibleRoutes = [] // SUBSET OF CURRENTLY SELECTED ROUTES
 var routeIntersections = {};
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
 var numTotalRoutes = 0;
-
+var busTimes = {};
+var currentSliderValues = [0, 2400];
+var debug_count = 0;
 // Define the div for the tooltip
-var div = d3.select("body").append("div") 
+var divTooltip = d3.select("body").append("div") 
     .attr("class", "tooltip")       
     .style("opacity", 0);
+
+
+
+// Pull in route time data
+d3.json('data/busTimesData.json', function(err, data) {
+  for (var route in data) {
+    busTimes[route] = data[route]
+  }
+});
+
 
 // Pull in processed KC Metro GTFS data
 d3.json('data/routePathData.json', function(err, data) {
   // Convert data to GeoJSON format
   var features = [];
   for (var route in data) {
+
     var routeFeature = {
       "type": "Feature",
       "geometry": {
@@ -28,17 +41,19 @@ d3.json('data/routePathData.json', function(err, data) {
         "coordinates": data[route]
       },
       properties: {
-        "route": route
+        "route": route,
+        "times": busTimes[route]
       }
     };
     features.push(routeFeature);
   }
   // Set global variables
   routes = features;
-  selectedRoutes = features;
+  //selectedRoutes = features;
   numTotalRoutes = routes.length;
   render();
 });
+
 
 // Pull in route intersection data
 d3.json('data/intersections.json', function (err, data) {
@@ -70,6 +85,7 @@ d3.json('data/intersections.json', function (err, data) {
   }
 
 });
+
 
 /*****************************************************************************/
 /*******     MAP RENDERING        ********************************************/
@@ -128,6 +144,58 @@ svg.selectAll("g")
     });
 
 /*****************************************************************************/
+/*******     SLIDER STUFF        *********************************************/
+/*****************************************************************************/
+// Taken (sort of) from https://github.com/MasterMaps/d3-slider
+d3.select('#slider')
+  .call(d3.slider()
+    .axis(true).min(0).max(2400).step(25)
+    .value( [ 0, 2400 ] )
+    .on("slideend", function(evt, value) {
+      // Convert values to time strings & update current slider values
+      // I'm sure there's a better way to do this.
+      var start_mm = (value[0] % 100) * .6;
+      var end_mm = (value[1] % 100) * .6;
+      start_mm = start_mm.toString();
+      if (start_mm.length == 1)
+        start_mm += "0";
+      end_mm = end_mm.toString();
+      if (end_mm.length == 1)
+        end_mm += "0";
+
+      var start_hh = Math.floor(value[0] / 100);
+      var end_hh = Math.floor(value[1] / 100);
+      currentSliderValues = [start_hh.toString() + start_mm.toString(), 
+        end_hh.toString() + end_mm.toString()];
+      d3.selectAll(".route")
+        .classed("visible", isRouteWithinTimes);
+      
+      displayRoutes();
+}));
+
+
+function isRouteWithinTimes(feature) {
+  debug_count += 1
+
+  for (var t = 0; t < feature.properties.times.length; t++) {
+    var times = feature.properties.times[t];
+    // If one end of a time block is between the sliders, return true
+    if (parseInt(times[0]) < currentSliderValues[1] && parseInt(times[0]) > currentSliderValues[0]) {
+      return true;
+    }
+    if (parseInt(times[1]) < currentSliderValues[1] && parseInt(times[1]) > currentSliderValues[0]) {
+      return true;
+    }
+    // If the time block start is before the slider start AND the time block
+    // end is after the slider end, return true
+    if (parseInt(times[0]) <= currentSliderValues[0] && parseInt(times[1]) >= currentSliderValues[1]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*****************************************************************************/
 /*******     ROUTE RENDERING        ******************************************/
 /*****************************************************************************/
 function getColor(feature)
@@ -156,11 +224,14 @@ function getRouteWidth(feature) {
 function render() {
   var bus = svg.append("g");
   bus.selectAll("path")
-    .data(selectedRoutes)
+    .data(routes)
     .enter()
       .append("path")
       .attr("d", geoPath)
       .attr("class", "route")
+      .classed("unselected", true)
+      .classed("selected", false)
+      .classed("visible", true)
       .on("click", onRouteClicked)
       .on("dblclick", onRouteDoubleClicked)
       .on("mouseover", onRouteMousedOver)
@@ -187,45 +258,38 @@ function moveSelectedRouteToTop(route) {
 function makeTextboxRouteText() {
   var routeHref = "";
   var routeText = "";
-  for (var i = 0; i < currentlySelectedRoutes.length; i++) {
-    routeHref = '<a href="' + makeRouteURL(currentlySelectedRoutes[i]) + '">' + currentlySelectedRoutes[i] + '</a> ';
-    if (routeText == '') {
+  d3.selectAll(".route.selected").filter(".visible")
+    .filter( function(feature) {
+      var routeHref = '<a href="' + makeRouteURL(feature.properties.route)
+     + '">' + feature.properties.route + '</a> ';
+     if (routeText == '') {
       routeText = routeHref;
     }
     else {
       routeText += ", " + routeHref
     }
-  }
+    });
+  // filter is not the right thing to use... but it works. 
   return routeText;
 }
-function setSelectedRoute(route) {
-
-  var updatedRoutes = d3.select('#selected-text').html();
-  // check to see if route is already selected.
-  var updatedRoutesList = updatedRoutes.split(", ");
-  for (var i = 0; i < updatedRoutesList.length; i++) {
-    if (route == updatedRoutesList[i])
-      return;
-  }  
-
-  currentlySelectedRoutes.push(route);
-
-  d3.select('#selected-text').html(makeTextboxRouteText());
-  d3.select('#selected-route').style('visibility', 'visible');
-
-}
-
 
 function unsetSelectedRoutes() {
   d3.select('#selected-route').style('visibility', 'hidden');
   d3.select('#selected-text').html('');
-  currentlySelectedRoutes = [];
+  //currentlySelectedRoutes = [];
+  d3.selectAll(".route.selected")
+    .classed("unselected", true)
+    .classed("selected", false)
+    .classed("visible", false);
 
 }
 
 function resetRoutes() {
   d3.selectAll(".route")
     .sort(d3.ascending)          // Reset z-ordering
+    .classed("selected", false)
+    .classed("unselected", true)
+    .classed("visible", false)
     .style('stroke', getColor)   // Reset colors
     .style("stroke-opacity", 1)  // Reset opacity
     .style("stroke-width", getRouteWidth);  // Reset width
@@ -234,77 +298,55 @@ function resetRoutes() {
   document.getElementById('route-input').value = '';
 }
 
-function isRouteCurrentlySelected(route) {
-  // If ALL the routes are selected, it doesn't count.
-  if (numTotalRoutes == currentlySelectedRoutes.length) {
-    return false;
-  }
-  for (var i = 0; i < currentlySelectedRoutes.length; i++) {
-    if (currentlySelectedRoutes[i] == route) {
-      return true;
-    }
-  }
-  return false;
-}
 /*****************************************************************************/
 /*******     EVENT HANDERS        ********************************************/
 /*****************************************************************************/
-function onRouteClicked(feature) {
-  // Select or unselect this route?
-  var newOpacity = .25;
-
-  if (! isRouteCurrentlySelected(feature.properties.route))
-  {
-    setSelectedRoute(feature.properties.route);
-
-    // others
-    d3.selectAll(".route")
-      .filter(function (feature) {
-        return !isRouteCurrentlySelected(feature.properties.route);
-      })
-      .style("stroke-opacity", newOpacity)
-      .style("stroke-width", getRouteWidth)
-      .style('stroke', '#6E91B9');
-    // self
-    d3.selectAll(".route")
-      .filter(function (feature) {
-        return isRouteCurrentlySelected(feature.properties.route);
-      })
-      .style("stroke-opacity", 1)
-      .style("stroke-width", 6)
-      .style('stroke', getColor); 
-    
+function selectRoute(feature) {
     moveSelectedRouteToTop(feature.properties.route);
-  }
-  else {
-    // if we're unselecting the only route, just reset everything.
-    if (currentlySelectedRoutes.length == 1) {
-      resetRoutes();
-    }
-    else {
-      var index = currentlySelectedRoutes.indexOf(feature.properties.route);
-      if (index > -1) {
-        currentlySelectedRoutes.splice(index, 1);
-      }
-      d3.select(this)
-        .style("stroke-opacity", newOpacity)
-        .style("stroke-width", getRouteWidth)
-        .style('stroke', '#6E91B9');
+}
 
-      // show new textbox
-      d3.select('#selected-text').html(makeTextboxRouteText());
-      d3.select('#selected-route').style('visibility', 'visible');
-    }
-  }
+function displayRoutes() {
+  d3.selectAll(".route")
+    .style("stroke-opacity", .25)
+    .style("stroke-width", getRouteWidth)
+    .style('stroke', '#6E91B9');
+
+  d3.selectAll(".route.selected").filter(".visible")
+    .style("stroke-width", 6)
+    .style("stroke-opacity", 1)
+    .style('stroke', getColor); 
+
+  d3.select('#selected-text').html(makeTextboxRouteText());
+  d3.select('#selected-route').style('visibility', 'visible');
+}
+
+
+
+function onRouteClicked(feature) {
+  d3.select(this)
+    .classed("selected", !d3.select(this).classed("selected"))
+    .classed("visible", isRouteWithinTimes)
+    .classed("unselected", false);
+
+  displayRoutes();
 }
 
 function onRouteDoubleClicked(feature) {
-  var intersectingRoutes = routeIntersections[feature.properties.route];
-  for (var i = 0; i < intersectingRoutes.length; i++)
-  {
-    var intersectingRoute = intersectingRoutes[i];
-    onRouteClicked(intersectingRoute);
-  }
+ var intersectingRoutes = routeIntersections[feature.properties.route];
+
+  d3.selectAll(".route")
+    .filter(function(feature) {
+      for (var i = 0; i < intersectingRoutes.length; i++) {
+        if (feature.properties.route == intersectingRoutes[i].properties.route) {
+          return true;
+        }
+      }
+      return false;
+    })
+    .classed("selected", true)
+    .classed("visible", isRouteWithinTimes)
+    .classed("unselected", false);
+displayRoutes();
 }
 
 function makeRouteURL(route) {
@@ -329,26 +371,25 @@ function makeRouteURL(route) {
   return link + routenum + extension;
 }
 function onRouteMousedOver(feature) {
-  // check if route is selected
-  for (var i = 0; i < currentlySelectedRoutes.length; i++) {
-    if (feature.properties.route == currentlySelectedRoutes[i]) {
-        // can't actually click on the link in the tooltip ... TODO, make this work.
+  var self = this;
+  d3.selectAll(".route.selected").filter(".visible")
+    .filter(function(feature) {return this==self})
+    .filter(function(feature) {
         var routeHref = '<a href="' + makeRouteURL(feature.properties.route) + '">' + feature.properties.route + '</a> ';
 
         // show a tooltip with the route name
-          div.transition()   
+          divTooltip.transition()   
             .duration(200)    
             .style("opacity", .95);    
-          div.html(feature.properties.route) 
-          //div.html(routeHref) 
+          divTooltip.html(feature.properties.route) 
             .style("left", (d3.event.pageX) + "px")   
             .style("top", (d3.event.pageY - 28) + "px");  
-    }
-  }
+  });
 }
 
+
 function hideToolTip() {
-  div.transition()    
+  divTooltip.transition()    
     .duration(500)    
     .style("opacity", 0); 
 }
@@ -409,7 +450,8 @@ function findRoutesInRect() {
             && lat <= higher_latitude
             && lat >= lower_latitude) {
 
-          onRouteClicked(routes[i]);
+          intersectingRoutes.push(routes[i]);
+
           // We found at least one coord in the box; don't need to look through the rest.
           break;
         }
@@ -417,8 +459,22 @@ function findRoutesInRect() {
     }    
   }
 
+  d3.selectAll(".route")
+    .filter(function(feature) {
+      for (var i = 0; i < intersectingRoutes.length; i++) {
+        if (feature.properties.route == intersectingRoutes[i].properties.route) {
+          return true;
+        }
+      }
+      return false;
+    })
+    .classed("selected", true)
+    .classed("visible", isRouteWithinTimes)
+    .classed("unselected", false);
+
   rectXY_0 = [0, 0];
   rectXY_1 = [0, 0]
+  displayRoutes();
 }
 
 
