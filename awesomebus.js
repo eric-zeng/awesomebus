@@ -200,13 +200,34 @@ d3.json('data/intersections.json', function (err, data) {
 /*****************************************************************************/
 /*******     ROUTE RENDERING        ******************************************/
 /*****************************************************************************/
-function getColor(feature)
-{
-  // color palette taken from http://jnnnnn.blogspot.com.au/2015/10/selecting-different-colours-for.html
-  // (slightly modified to get rid of the grays)
-  // This isn't perfect because there are still some collisions.. but it is better.
-  var colors = ["#015eff", "#0cc402", "#fc0a18", "#ff15ae", "#d99f07", "#11a5fe", "#037e43", "#ba4455", "#d10aff", "#9354a6", "#7b6d2b", "#08bbbb", "#95b42d", "#b54e04", "#ee74ff", "#2d7593", "#e19772", "#fa7fbe", "#fe035b", "#aea0db", "#905e76", "#92b27a", "#03c262", "#878aff", "#4a7662", "#ff6757", "#fe8504", "#9340e1", "#2a8602", "#07b6e5", "#d21170", "#526ab3", "#ff08e2", "#bb2ea7", "#e4919f", "#09bf91", "#90624c", "#a26c05", "#5c7605", "#df89e7", "#b0487c", "#ee9345", "#70b458",  "#ec5206", "#ff678c", "#b55b3e", "#8054cc", "#c480b3", "#d9102d", "#5a783f", "#fe66d2", "#bc13c8", "#62bd33", "#8f31ff", "#fd8581", "#049279", "#0e6ad6", "#747151", "#01878d", "#0380bf", "#bf81fd", "#8ba1fb", "#887a02", "#d04096", "#a583da", "#8ca149", "#b16368", "#c23e37", "#fd7b40", "#d12153", "#b24cd2", "#56a66f", "#5dafbd", "#78aceb", "#2375fe", "#d49f54", "#ea41d3", "#885e92", "#8468fd", "#cf4eff", "#c93716", "#c563af", "#d66886", "#664dfd", "#468530", "#6d60be", "#fa8a64", "#059843", "#ff55a1", "#638b8e", "#ff0f7a", "#3f93ff", "#ff5167", "#d68201"];
+// color palette taken from http://jnnnnn.blogspot.com.au/2015/10/selecting-different-colours-for.html
+// (slightly modified to get rid of the grays)
+// This isn't perfect because there are still some collisions.. but it is better.
+var colors = [
+  "#015eff", "#0cc402", "#fc0a18", "#ff15ae", "#d99f07", "#11a5fe", "#037e43",
+  "#ba4455", "#d10aff", "#9354a6", "#7b6d2b", "#08bbbb", "#95b42d", "#b54e04",
+  "#ee74ff", "#2d7593", "#e19772", "#fa7fbe", "#fe035b", "#aea0db", "#905e76",
+  "#92b27a", "#03c262", "#878aff", "#4a7662", "#ff6757", "#fe8504", "#9340e1",
+  "#2a8602", "#07b6e5", "#d21170", "#526ab3", "#ff08e2", "#bb2ea7", "#e4919f",
+  "#09bf91", "#90624c", "#a26c05", "#5c7605", "#df89e7", "#b0487c", "#ee9345",
+  "#70b458", "#ec5206", "#ff678c", "#b55b3e", "#8054cc", "#c480b3", "#d9102d",
+  "#5a783f", "#fe66d2", "#bc13c8", "#62bd33", "#8f31ff", "#fd8581", "#049279",
+  "#0e6ad6", "#747151", "#01878d", "#0380bf", "#bf81fd", "#8ba1fb", "#887a02",
+  "#d04096", "#a583da", "#8ca149", "#b16368", "#c23e37", "#fd7b40", "#d12153",
+  "#b24cd2", "#56a66f", "#5dafbd", "#78aceb", "#2375fe", "#d49f54", "#ea41d3",
+  "#885e92", "#8468fd", "#cf4eff", "#c93716", "#c563af", "#d66886", "#664dfd",
+  "#468530", "#6d60be", "#fa8a64", "#059843", "#ff55a1", "#638b8e", "#ff0f7a",
+  "#3f93ff", "#ff5167", "#d68201"
+];
 
+function getColor(feature) {
+  if (feature.properties.route === 'LINK') {
+    return "#2b376c";  // Link Light Rail - blue
+  } else if (feature.properties.route.startsWith('Stcr')) {
+    return "#d67114";  // Seattle Streetcar - orange
+  } else if (feature.properties.route.endsWith('Line')) {
+    return "#cc0000";  // RapidRide - red
+  }
   var index = routes.indexOf(feature);
   var colorIndex = index % colors.length
   return d3.rgb(colors[colorIndex]).darker(.25).toString();;
