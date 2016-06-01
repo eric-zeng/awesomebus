@@ -6,31 +6,57 @@
 let width = window.innerWidth;
 let height = window.innerHeight;
 
+// Intialize map div
 var mapElement = d3.select('body')
   .append('div')
   .attr('id', 'map')
   .style('width', width + 'px')
   .style('height', height + 'px');
 
+// Initialize MapBox
 L.mapbox.accessToken = 'pk.eyJ1IjoiZXJpYy16ZW5nIiwiYSI6ImNpb3ZyZngxYTAxZGF1MG00N3VlNmllcWgifQ.c8Wd_V-zL2osmIPKcyCfDA';
 var map = L.mapbox.map('map', 'mapbox.streets')
   .setView([47.63, -122.33], 12);
 
+// Initialize SVG for drawing routes
 var svg = d3.select(map.getPanes().overlayPane).append('svg');
 var g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
+// Implement projection from coordinates to latitude-longitude points on the SVG
 function projectPoint(lng, lat) {
   var point = map.latLngToLayerPoint(new L.LatLng(lat, lng));
   this.stream.point(point.x, point.y);
 }
-
 var leafletProjection = d3.geo.transform({point: projectPoint});
+// Implement inverted projection from x,y points to latitude-longitude
 leafletProjection.invert = function(point) {
   var coords = map.layerPointToLatLng(point);
   return [coords.lng, coords.lat];
 }
 
+// Set up d3 with projection
 var geoPath = d3.geo.path().projection(leafletProjection);
+
+/**
+ * Resets the SVG bounds when the map layer position/zoom changes
+ * @param routePaths The path elements representing the routes. Needs to be
+ * passed as a parameter because they aren't created until the JSON is loaded.
+ */
+function resetSVGBounds(routePaths) {
+  var bounds = geoPath.bounds({'type': 'FeatureCollection', 'features': routes});
+  var topLeft = bounds[0];
+  var bottomRight = bounds[1];
+
+  svg.attr("width", bottomRight[0] - topLeft[0])
+     .attr("height", bottomRight[1] - topLeft[1])
+     .style("left", topLeft[0] + "px")
+     .style("top", topLeft[1] + "px");
+
+  g.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+  routePaths.attr("d", geoPath);
+}
+
+
 
 /*****************************************************************************/
 /*******     SLIDER STUFF        *********************************************/
@@ -92,7 +118,6 @@ var visibleRoutes = [] // SUBSET OF CURRENTLY SELECTED ROUTES
 var routeIntersections = {};
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
-var numTotalRoutes = 0;
 var busTimes = {};
 var currentSliderValues = [0, 2400];
 var debug_count = 0;
@@ -127,43 +152,9 @@ d3.json('data/routePathData.json', function(err, data) {
     routes.push(routeFeature);
   }
 
-  numTotalRoutes = routes.length;
-
-  var buses = g.selectAll("path")
-    .data(routes)
-    .enter()
-      .append("path")
-      .attr("d", geoPath)
-      .attr("class", "route")
-      .classed("unselected", true)
-      .classed("selected", false)
-      .classed("visible", true)
-      .on("click", onRouteClicked)
-      .on("dblclick", onRouteDoubleClicked)
-      .on("mouseover", onRouteMousedOver)
-      .on("mouseout", onRouteMouseOut)
-      // Set route color based on transit mode
-      .style("stroke", getColor)
-      // Set width of line based on transit mode
-      .style("stroke-width", getRouteWidth)
-
-  function reset() {
-    console.log('reset called');
-    var bounds = geoPath.bounds({'type': 'FeatureCollection', 'features': routes});
-    var topLeft = bounds[0];
-    var bottomRight = bounds[1];
-
-    svg.attr("width", bottomRight[0] - topLeft[0])
-       .attr("height", bottomRight[1] - topLeft[1])
-       .style("left", topLeft[0] + "px")
-       .style("top", topLeft[1] + "px");
-
-    g.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
-    buses.attr("d", geoPath);
-  }
-
-  map.on("viewreset", function() { console.log('viewreset fired'); reset(); });
-  reset();
+  var buses = render();
+  reset(buses);
+  map.on("viewreset", function() { reset(buses) });
 });
 
 // Pull in route intersection data
@@ -200,6 +191,27 @@ d3.json('data/intersections.json', function (err, data) {
 /*****************************************************************************/
 /*******     ROUTE RENDERING        ******************************************/
 /*****************************************************************************/
+
+function render() {
+  return g.selectAll("path")
+    .data(routes)
+    .enter()
+      .append("path")
+      .attr("d", geoPath)
+      .attr("class", "route")
+      .classed("unselected", true)
+      .classed("selected", false)
+      .classed("visible", true)
+      .on("click", onRouteClicked)
+      .on("dblclick", onRouteDoubleClicked)
+      .on("mouseover", onRouteMousedOver)
+      .on("mouseout", onRouteMouseOut)
+      // Set route color based on transit mode
+      .style("stroke", getColor)
+      // Set width of line based on transit mode
+      .style("stroke-width", getRouteWidth)
+}
+
 // color palette taken from http://jnnnnn.blogspot.com.au/2015/10/selecting-different-colours-for.html
 // (slightly modified to get rid of the grays)
 // This isn't perfect because there are still some collisions.. but it is better.
