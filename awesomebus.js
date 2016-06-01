@@ -63,7 +63,6 @@ d3.select('#slider')
 }));
 
 function isRouteWithinTimes(feature) {
-  return true;
   debug_count += 1
 
   for (var t = 0; t < feature.properties.times.length; t++) {
@@ -307,7 +306,7 @@ function displayRoutes() {
 function onRouteClicked(feature) {
   d3.select(this)
     .classed("selected", !d3.select(this).classed("selected"))
-    //.classed("visible", isRouteWithinTimes)
+    .classed("visible", isRouteWithinTimes)
     .classed("unselected", !d3.select(this).classed("unselected"));
   displayRoutes();
 }
