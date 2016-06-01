@@ -308,8 +308,7 @@ function onRouteClicked(feature) {
   d3.select(this)
     .classed("selected", !d3.select(this).classed("selected"))
     //.classed("visible", isRouteWithinTimes)
-    .classed("unselected", false);
-
+    .classed("unselected", !d3.select(this).classed("unselected"));
   displayRoutes();
 }
 
