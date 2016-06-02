@@ -20,7 +20,8 @@ var map = L.mapbox.map('map', 'mapbox.streets')
 
 // Initialize SVG for drawing routes
 var svg = d3.select(map.getPanes().overlayPane).append('svg');
-var g = svg.append("g").attr("class", "leaflet-zoom-hide");
+var routeLayer = svg.append("g").attr('class', 'leaflet-zoom-hide');
+var stopLayer = svg.append('g').attr('class', 'leaflet-zoom-hide');
 
 // Implement projection from coordinates to latitude-longitude points on the SVG
 function projectPoint(lng, lat) {
@@ -37,12 +38,8 @@ leafletProjection.invert = function(point) {
 // Set up d3 with projection
 var geoPath = d3.geo.path().projection(leafletProjection);
 
-/**
- * Resets the SVG bounds when the map layer position/zoom changes
- * @param routePaths The path elements representing the routes. Needs to be
- * passed as a parameter because they aren't created until the JSON is loaded.
- */
-function resetSVGBounds(routePaths) {
+// Resets the SVG bounds when the map layer position/zoom changes
+function resetSVGBounds() {
   var bounds = geoPath.bounds({'type': 'FeatureCollection', 'features': routes});
   var topLeft = bounds[0];
   var bottomRight = bounds[1];
@@ -52,9 +49,16 @@ function resetSVGBounds(routePaths) {
      .style("left", topLeft[0] + "px")
      .style("top", topLeft[1] + "px");
 
-  g.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
-  routePaths.attr("d", geoPath);
+  routeLayer.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+  stopLayer.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+  if (svgRoutes) {
+    svgRoutes.attr('d', geoPath);
+  }
+  if (svgStops) {
+    svgStops.attr('d', geoPath);
+  }
 }
+map.on("viewreset", resetSVGBounds);
 
 
 
@@ -112,13 +116,18 @@ function isRouteWithinTimes(feature) {
 /*****************************************************************************/
 /*******     DATA       ******************************************************/
 /*****************************************************************************/
-var routes = [];  // All route data. To be populated by routePathData.json
-var currentlySelectedRoutes = []; // errr .. how exactly is this different from selectedRoutes? can we merge these?
-var visibleRoutes = [] // SUBSET OF CURRENTLY SELECTED ROUTES
+// Data to be populated from JSON files
+var routes = [];
+var stops = [];
 var routeIntersections = {};
+var busTimes = {};
+
+// SVG representation of the data
+var svgRoutes;
+var svgStops;
+
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
-var busTimes = {};
 var currentSliderValues = [0, 2400];
 var debug_count = 0;
 
@@ -152,9 +161,8 @@ d3.json('data/routePathData.json', function(err, data) {
     routes.push(routeFeature);
   }
 
-  var buses = render();
-  resetSVGBounds(buses);
-  map.on("viewreset", function() { resetSVGBounds(buses) });
+  svgRoutes = renderRoutes();
+  resetSVGBounds();
 });
 
 // Pull in route intersection data
@@ -188,12 +196,22 @@ d3.json('data/intersections.json', function (err, data) {
 
 });
 
+d3.json('data/stopData.geojson', function(err, data) {
+  if (err) {
+    console.error(err);
+    return;
+  }
+  stops = data;
+  svgStops = renderStops();
+  resetSVGBounds();
+});
+
 /*****************************************************************************/
 /*******     ROUTE RENDERING        ******************************************/
 /*****************************************************************************/
 
-function render() {
-  return g.selectAll("path")
+function renderRoutes() {
+  return routeLayer.selectAll("path")
     .data(routes)
     .enter()
       .append("path")
@@ -295,7 +313,6 @@ function makeTextboxRouteText() {
 function unsetSelectedRoutes() {
   d3.select('#selected-route').style('visibility', 'hidden');
   d3.select('#selected-text').html('');
-  //currentlySelectedRoutes = [];
   d3.selectAll(".route.selected")
     .classed("unselected", true)
     .classed("selected", false)
@@ -316,6 +333,22 @@ function resetRoutes() {
   unsetSelectedRoutes();
   document.getElementById('route-input').value = '';
 }
+
+
+/*****************************************************************************/
+/*******     STOP RENDERING       ********************************************/
+/*****************************************************************************/
+function renderStops() {
+  return stopLayer.selectAll('path')
+    .data(stops)
+    .enter()
+      .append('path')
+      .attr('d', geoPath)
+      .attr('class', 'stop')
+      .style('stroke', '#E8A043')
+      .style('stroke-width', 2)
+}
+
 
 /*****************************************************************************/
 /*******     EVENT HANDERS        ********************************************/
