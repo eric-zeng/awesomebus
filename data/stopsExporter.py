@@ -6,7 +6,7 @@ import sqlHelper
 rows = sqlHelper.queryFromFile('stopsQuery.sql')
 
 stops = dict()
-stops_file = open('stopsData.json', 'w')
+outputFile = open('stopData.geojson', 'w')
 
 for row in rows:
     name = row[0]
@@ -22,4 +22,21 @@ for row in rows:
     if route not in stop['routes']:
         stop['routes'].append(route)
 
-json.dump(stops, stops_file)
+# Convert to GeoJSON representation
+geoJson = { 'type': 'FeatureCollection', 'features': list() }
+features = geoJson['features']
+
+for name, stop in stops.iteritems():
+    features.append({
+        'type': 'Feature',
+        'geometry': {
+            'type': 'Point',
+            'coordinates': [stop['lon'], stop['lat']]
+        },
+        'properties': {
+            'name': name,
+            'routes': stop['routes']
+        }
+    })
+
+json.dump(geoJson, outputFile, indent=2)
