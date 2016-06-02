@@ -23,9 +23,7 @@ for row in rows:
         stop['routes'].append(route)
 
 # Convert to GeoJSON representation
-geoJson = { 'type': 'FeatureCollection', 'features': list() }
-features = geoJson['features']
-
+features = list()
 for name, stop in stops.iteritems():
     features.append({
         'type': 'Feature',
@@ -39,4 +37,4 @@ for name, stop in stops.iteritems():
         }
     })
 
-json.dump(geoJson, outputFile, indent=2)
+json.dump(features, outputFile, indent=2)
