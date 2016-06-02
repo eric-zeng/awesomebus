@@ -1,13 +1,8 @@
 #!/usr/bin/python
-import psycopg2
-import os
 import json
 from datetime import datetime
 
-USER = os.getenv("USER")
-DATABASE = "transitdata"
 TIME_FORMAT = '%H:%M:%S'
-
 
 class TimeBlock:
     def __init__(self, start=None, end=None):
@@ -16,22 +11,22 @@ class TimeBlock:
         elif start.startswith('25'):
             start = '01' + start[2:]
         elif start.startswith('26'):
-            start = '02' + start[2:]        
+            start = '02' + start[2:]
         elif start.startswith('27'):
-            start = '03' + start[2:]        
+            start = '03' + start[2:]
         elif start.startswith('28'):
-            start = '04' + start[2:] 
+            start = '04' + start[2:]
 
         if end.startswith('24'):
             end = '00' + end[2:]
         elif end.startswith('25'):
             end = '01' + end[2:]
         elif end.startswith('26'):
-            end = '02' + end[2:]        
+            end = '02' + end[2:]
         elif end.startswith('27'):
-            end = '03' + end[2:]        
+            end = '03' + end[2:]
         elif end.startswith('28'):
-            end = '04' + end[2:]        
+            end = '04' + end[2:]
 
         self.start = datetime.strptime(start, TIME_FORMAT)
         self.end = datetime.strptime(end, TIME_FORMAT)
@@ -50,7 +45,7 @@ class Route:
         if type(other) != type(self):
             return False
         return self.name == other.name
-    
+
     def stringifyTimes(self):
         for time in self.times:
             # want to store date as a 4-digit number (string): HHMM
@@ -82,7 +77,7 @@ class Route:
         for trip in trips:
             if len(times) == 0:
                 times.append(trip)
-                continue             
+                continue
             # time1 > time2 # means that time1 is after time2
             # time1 < time2 means that time1 is before time2
             newBlockOfTime = True
@@ -107,7 +102,7 @@ class Route:
                         break
 
                 # If the start in this trip is between the start and end of this time,
-                # and if the end of this trip is AFTER the end of this time, replace the time.end with trip.end 
+                # and if the end of this trip is AFTER the end of this time, replace the time.end with trip.end
                 # (lengthen the time block)
                 # Trip:     A       B
                 # Time:  A      B
@@ -142,45 +137,16 @@ class Route:
             madeModification = True
         return madeModification, times
 
-
-
-def connectToDB():
-    conn = None
-    try:
-        conn = psycopg2.connect(
-            database = DATABASE,
-            user = USER,
-            password = "",
-            host="localhost")
-    except psycopg2.Error, e:
-        print "I am unable to connect to the database. \nError:"
-        print e
-        return conn
-    if conn is None:
-        return conn
-    return conn.cursor()
-
-def query(sql_query):
-    cur = connectToDB()
-    if cur is None:
-        print "Could not connect to database."
-        return ""
-    cur.execute(sql_query)
-    return cur.fetchall()
-
 # This query gets the route short name, trip_id, earliest time, and latest time of operation for that trip
 # See queries.sql for better formatting, explanation
-query_file = open('busTimesQuery.sql', 'r')
-route_path_query = query_file.read()
-
-rows = query(route_path_query)
+rows = queryFromFile('busTimesQuery.sql')
 
 export = dict()
 export_file = open('busTimesData.json', 'w')
 routes = []
 for row in rows:
     # Rows are
-    # route_short_name | trip_id  |   min    |   max   
+    # route_short_name | trip_id  |   min    |   max
     route = row[0]
     trip_id = row[1]
     trip_id_starttime = row[2]
