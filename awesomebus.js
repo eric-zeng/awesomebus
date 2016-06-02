@@ -55,8 +55,101 @@ function resetSVGBounds(routePaths) {
   g.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
   routePaths.attr("d", geoPath);
 }
+/*****************************************************************************/
+/*******     POLYGON SELECTION       *****************************************/
+/*****************************************************************************/
+// This function is opied directly from https://github.com/substack/point-in-polygon/blob/master/index.js
+function pointInPolygon (point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    
+    var x = point[0], y = point[1];
+    
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i][0], yi = vs[i][1];
+        var xj = vs[j][0], yj = vs[j][1];
+        
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    
+    return inside;
+};
 
 
+function findRoutesInPolygon (polygon) {
+  //polygon is an array of points
+
+  // Search for routes with the same coordinates
+  var intersectingRoutes = []
+  for (var i = 0; i < routes.length; i++) {
+    var geometry = routes[i].geometry.coordinates;
+    for (var j = 0; j < geometry.length; j++) {
+        var coords = [parseFloat(geometry[j][0]), parseFloat(geometry[j][1])];
+        if (pointInPolygon(coords, polygon)) {
+          intersectingRoutes.push(routes[i]);
+          // We found at least one coord in the box; don't need to look through the rest.
+          break;
+
+        }
+
+    }
+  }
+
+  d3.selectAll(".route")
+    .filter(function(feature) {
+      for (var i = 0; i < intersectingRoutes.length; i++) {
+        if (feature.properties.route == intersectingRoutes[i].properties.route) {
+          return true;
+        }
+      }
+      return false;
+    })
+    .classed("selected", true)
+    .classed("visible", isRouteWithinTimes)
+    .classed("unselected", false);
+
+  displayRoutes();
+}
+
+// polygon intersact code from http://bl.ocks.org/bycoffe/5575904 (modified)
+// and https://www.mapbox.com/mapbox.js/example/v1.0.0/show-polygon-area/
+var featureGroup = L.featureGroup().addTo(map);
+
+var drawControl = new L.Control.Draw({
+  edit: {
+    featureGroup: featureGroup
+  },
+  draw: {
+    polygon: true,
+    polyline: false,
+    rectangle: false,
+    circle: false,
+    marker: false
+  }
+}).addTo(map);
+
+map.on('draw:created', showIntersectingRoutes);
+
+
+//map.on('draw:edited', showPolygonAreaEdited);
+
+/*function showPolygonAreaEdited(e) {
+  e.layers.eachLayer(function(layer) {
+    showPolygonArea({ layer: layer });
+  });
+}*/
+
+function showIntersectingRoutes(e) {
+  var points = [];
+  for (var i = 0; i < e.layer._latlngs.length; i++) {
+    var coords = [e.layer._latlngs[i].lng, e.layer._latlngs[i].lat];
+    points.push(coords);
+  }
+  findRoutesInPolygon(points); 
+}
 
 /*****************************************************************************/
 /*******     SLIDER STUFF        *********************************************/
@@ -490,90 +583,6 @@ function findRoutesInRect() {
   displayRoutes();
 }
 
-
-
-
-/*****************************************************************************/
-/*******     SELECTION BOX  DRAWING      *************************************/
-/*****************************************************************************/
- // code (slightly) modified from http://bl.ocks.org/lgersman/5311083
-
- function svg_onmousedown_drawrect() {
-    var p = d3.mouse( this);
-
-    svg.append( "rect")
-    .attr({
-        rx      : 6,
-        ry      : 6,
-        class   : "selection",
-        x       : p[0],
-        y       : p[1],
-        width   : 0,
-        height  : 0
-    })
-
-    // Add starting x, y to  global var
-    rectXY_0 = leafletProjection.invert(p);
-
-}
-
-function svg_onmousemove_drawrect() {
-    var s = svg.select( "rect.selection");
-
-    if( !s.empty()) {
-        var p = d3.mouse( this),
-            d = {
-                x       : parseInt( s.attr( "x"), 10),
-                y       : parseInt( s.attr( "y"), 10),
-                width   : parseInt( s.attr( "width"), 10),
-                height  : parseInt( s.attr( "height"), 10)
-            },
-            move = {
-                x : p[0] - d.x,
-                y : p[1] - d.y
-            }
-        ;
-        if( move.x < 1 || (move.x*2<d.width)) {
-            d.x = p[0];
-            d.width -= move.x;
-        } else {
-            d.width = move.x;
-        }
-
-        if( move.y < 1 || (move.y*2<d.height)) {
-            d.y = p[1];
-            d.height -= move.y;
-        } else {
-            d.height = move.y;
-        }
-
-        s.attr( d);
-
-    }
-}
-
-function svg_onmouseup_drawrect() {
-    // remove selection frame
-    svg.selectAll( "rect.selection").remove();
-
-    // remove temporary selection marker class
-    d3.selectAll( 'g.state.selection').classed( "selection", false);
-
-    svg.selectAll( 'g.state.selection.selected route')
-       .style("stroke-width", 10);
-    d3.selectAll( 'g.state.selection.selected route')
-      .style("stroke-width", 10);
-
-    // Add ending x,y to global var
-    rectXY_1 = leafletProjection.invert(d3.mouse(this));
-    findRoutesInRect();
-}
-
-// Add ability to draw selection box on svg
-svg
-.on( "mousedown", svg_onmousedown_drawrect)
-.on( "mousemove", svg_onmousemove_drawrect)
-.on( "mouseup", svg_onmouseup_drawrect);
 
 /*****************************************************************************/
 /*******     END EVENT HANDERS        ****************************************/
