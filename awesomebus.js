@@ -153,8 +153,8 @@ d3.json('data/routePathData.json', function(err, data) {
   }
 
   var buses = render();
-  reset(buses);
-  map.on("viewreset", function() { reset(buses) });
+  resetSVGBounds(buses);
+  map.on("viewreset", function() { resetSVGBounds(buses) });
 });
 
 // Pull in route intersection data
