@@ -246,14 +246,19 @@ function getColor(feature) {
 }
 
 function getRouteWidth(feature) {
+  var zoomFactor = map.getZoom() / 4;
   var route = feature.properties.route;
   if (route === 'LINK') {
-    return 6;  // Link Light Rail
+    return zoomFactor * 1.5;  // Link Light Rail
   } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
-    return 5;  // Streetcar and RapidRide
+    return zoomFactor * 1;  // Streetcar and RapidRide
   } else  {
-    return 3;  // Buses
+    return zoomFactor * 0.7;  // Buses
   }
+}
+
+function getSelectedRouteWidth(feature) {
+  return map.getZoom() / 2;
 }
 
 function moveSelectedRouteToTop(route) {
@@ -334,8 +339,6 @@ function displayRoutes() {
   d3.select('#selected-route').style('visibility', 'visible');
 }
 
-
-
 function onRouteClicked(feature) {
   d3.select(this)
     .classed("selected", !d3.select(this).classed("selected"))
@@ -361,6 +364,15 @@ function onRouteDoubleClicked(feature) {
     .classed("unselected", false);
 displayRoutes();
 }
+
+function onZoom() {
+  console.log('onZoom called');
+  d3.selectAll('.route')
+    .style('stroke-width', getRouteWidth)
+  d3.selectAll('.selected')
+    .style('stroke-width', getSelectedRouteWidth)
+}
+map.on('zoomend', onZoom);
 
 function makeRouteURL(route) {
 
@@ -560,9 +572,9 @@ function svg_onmouseup_drawrect() {
     d3.selectAll( 'g.state.selection').classed( "selection", false);
 
     svg.selectAll( 'g.state.selection.selected route')
-       .style("stroke-width", 10);
+       .style("stroke-width", getSelectedRouteWidth);
     d3.selectAll( 'g.state.selection.selected route')
-      .style("stroke-width", 10);
+      .style("stroke-width", getSelectedRouteWidth);
 
     // Add ending x,y to global var
     rectXY_1 = leafletProjection.invert(d3.mouse(this));
@@ -596,7 +608,7 @@ d3.select('#route-input').on('input', function() {
   d3.selectAll('.route')
     .filter(function(feature) { return feature.properties.route === this.value }.bind(this))
     .style("stroke-opacity", 1)
-    .style("stroke-width", 6)
+    .style("stroke-width", getSelectedRouteWidth)
     .style('stroke', getColor);
 
   unsetSelectedRoutes();
