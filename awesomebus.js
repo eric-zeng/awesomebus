@@ -60,6 +60,12 @@ function resetSVGBounds() {
 }
 map.on("viewreset", resetSVGBounds);
 
+// Master update function. Call whenever route or stop selections are updated.
+function update() {
+  updateRoutes();
+  updateSidebar();
+}
+
 /*****************************************************************************/
 /*******     POLYGON SELECTION       *****************************************/
 /*****************************************************************************/
@@ -103,7 +109,7 @@ function findRoutesInPolygon(polygon) {
   }
 
   selectedRoutes = intersectingRoutes;
-  updateRoutes();
+  update();
 }
 
 // polygon intersact code from http://bl.ocks.org/bycoffe/5575904 (modified)
@@ -174,7 +180,7 @@ d3.select('#slider')
       d3.selectAll(".route")
         .classed("visible", isRouteWithinTimes);
 
-      updateRoutes();
+      update();
 }));
 
 function isRouteWithinTimes(feature) {
@@ -211,8 +217,8 @@ var busTimes = {};
 var svgRoutes;
 var svgStops;
 
-// Bookkeeping for sidebar
 var selectedRoutes = [];
+var selectedStop = undefined;
 
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
@@ -320,13 +326,11 @@ function renderRoutes() {
       .style("stroke-width", getRouteWidth)
 }
 
-
 function updateRoutes() {
   d3.selectAll(".route")
     .style("stroke-opacity", getRouteOpacity)
     .style("stroke-width", getRouteWidth)
     .style('stroke', getRouteColor);
-  updateSidebarRoutes();
 }
 
 // color palette taken from http://jnnnnn.blogspot.com.au/2015/10/selecting-different-colours-for.html
@@ -406,7 +410,8 @@ function moveSelectedRouteToTop(route) {
 function resetRoutes() {
   document.getElementById('route-input').value = '';
   selectedRoutes = [];
-  updateRoutes();
+  selectedStop = undefined;
+  update();
 }
 
 /*****************************************************************************/
@@ -424,30 +429,20 @@ function renderStops() {
 }
 
 function onStopClicked(feature) {
-  resetRoutes();
-  d3.selectAll(".route")
-    .filter(function(routeFeature) {
-      return feature.properties.routes.indexOf(routeFeature.properties.route) != -1;
-    })
-    .classed("selected", true)
-    .classed("visible", isRouteWithinTimes)
-    .classed("unselected", false);
+  selectedStop = feature;
+  selectedRoutes = feature.properties.routes;
+  update();
 }
 
 /*****************************************************************************/
 /*******     SIDEBAR              ********************************************/
 /*****************************************************************************/
-function displayRouteInfo() {
-  d3.select('#stop-info').style('visibility', 'hidden');
-  d3.select('#route-info').style('visibility', 'visible');
+function oneBusAwayUrl(feature) {
+  return 'http://pugetsound.onebusaway.org/where/standard/stop.action?id=1_' +
+          feature.properties.id;
 }
 
-function displayStopInfo() {
-  d3.select('#stop-info').style('visibility', 'visible');
-  d3.select('#route-info').style('visibility', 'hidden');
-}
-
-function updateSidebarRoutes() {
+function updateSidebar() {
   // Display selected routes in the sidebar
   var routeLinks = d3.select('#selected-routes').selectAll('span')
     .data(selectedRoutes)
@@ -461,6 +456,15 @@ function updateSidebarRoutes() {
 
   routeLinks.exit()
     .remove();
+
+  // Show stop information if selected
+  if (selectedStop) {
+    d3.select('#stop-info').style('visibility', 'visible');
+    d3.select('#stop-header').text(selectedStop.properties.name);
+    d3.select('#oba').attr('href', oneBusAwayUrl(selectedStop));
+  } else {
+    d3.select('#stop-info').style('visibility', 'hidden');
+  }
 }
 
 // Sidebar input box
@@ -495,8 +499,7 @@ function onRouteClicked(feature) {
   } else {
     selectedRoutes.splice(index, 1);
   }
-
-  updateRoutes();
+  update();
 }
 
 function onRouteDoubleClicked(feature) {
@@ -506,7 +509,7 @@ function onRouteDoubleClicked(feature) {
       selectedRoutes.push(route);
     }
   });
-  updateRoutes();
+  update();
 }
 
 map.on('zoomend', function() {
@@ -515,11 +518,7 @@ map.on('zoomend', function() {
     .style('stroke-width', getRouteWidth)
 
   // Hide stops if zoomed far out
-  if (map.getZoom() < 14) {
-    d3.selectAll('.stop').style('visibility', 'hidden');
-  } else {
-    d3.selectAll('.stop').style('visibility', 'visible')
-  }
+  d3.selectAll('.stop').style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible');
 });
 
 // Make stops invisible when zooming so that they don't stay in their old

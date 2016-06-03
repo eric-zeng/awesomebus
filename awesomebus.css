@@ -94,12 +94,20 @@ h3 {
   outline: none;
 }
 
-#selected-route {
+#stop-info {
+  visibility: hidden;
+}
+
+#route-info {
   visibility: hidden;
 }
 
 #selected-text {
   margin-left: 4px;
+}
+
+#selected-routes {
+  word-wrap: break-word;
 }
 
 .route-link {

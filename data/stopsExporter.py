@@ -9,22 +9,23 @@ stops = dict()
 outputFile = open('stopData.geojson', 'w')
 
 for row in rows:
-    name = row[0]
-    lat = row[1]
-    lon = row[2]
-    route = row[3]
+    id = row[0]
+    name = row[1]
+    lat = row[2]
+    lon = row[3]
+    route = row[4]
 
-    if name not in stops:
-        stops[name] = { 'lat': str(lat), 'lon': str(lon), 'routes': list() }
+    if id not in stops:
+        stops[id] = { 'name': name, 'lat': str(lat), 'lon': str(lon), 'routes': list() }
 
-    stop = stops[name]
+    stop = stops[id]
 
     if route not in stop['routes']:
         stop['routes'].append(route)
 
 # Convert to GeoJSON representation
 features = list()
-for name, stop in stops.iteritems():
+for id, stop in stops.iteritems():
     features.append({
         'type': 'Feature',
         'geometry': {
@@ -32,7 +33,8 @@ for name, stop in stops.iteritems():
             'coordinates': [stop['lon'], stop['lat']]
         },
         'properties': {
-            'name': name,
+            'id': str(id),
+            'name': stop['name'],
             'routes': stop['routes']
         }
     })
