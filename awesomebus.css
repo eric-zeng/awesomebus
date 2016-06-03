@@ -3,19 +3,19 @@ html {
 }
 
 body {
+  display: flex;
   margin: 0;
+  height: 100%;
 }
 
 /* from (sort of) https://github.com/MasterMaps/d3-slider */
-
 .d3-slider {
-    position: relative;
-    font-family: Verdana,Arial,sans-serif;
-    font-size: 1.1em;
-    border: 1px solid #aaaaaa;
-    z-index: 2;
+  position: absolute;
+  top: 10px;
+  left: 340px;
+  width: 500px;
+  z-index: 2;
 }
-
 
 /* from http://bl.ocks.org/d3noob/a22c42db65eb00d4e369*/
 div.tooltip {
@@ -31,10 +31,10 @@ div.tooltip {
     pointer-events: none;
 }
 
-
 /* Map styles */
 .route {
   fill: none;
+  stroke-linecap: round;
 }
 
 .stop {
@@ -42,37 +42,15 @@ div.tooltip {
   fill-opacity: 0.8;
 }
 
-
-.ocean, .water, .riverbank, .reservoir {
-  fill: #468ba4;
-  stroke: #468ba4;
-}
-
-.major_road, .minor_road, .highway, .rail {
-  fill: none;
-  stroke: #000;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.major_road { stroke: #776; }
-.minor_road { stroke: #ccb; }
-.highway { stroke: #d4b24b; stroke-width: 1.5px; }
-.rail { stroke: #7de; }
-
 /* UI panel styles */
-#ui-overlay {
-  position: absolute;
-  z-index: 2;
-
-  bottom: 25px;
-  left: 25px;
-  height: 250px;
+#sidebar {
+  height: 100vh;
   width: 250px;
+  z-index: 2;
 
   background-color: #FDFCF8;
   box-shadow: 0px 0px 5px 2px #39616F;
-  border-radius: 2px;
+  /*border-radius: 2px;*/
   padding: 10px;
 }
 
@@ -121,20 +99,9 @@ h3 {
   margin-left: 4px;
 }
 
-#slider {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  height: 10px;
-  width: 500px;
-  color: green;
-}
-
-
-
 .footer {
   position: absolute;
-  bottom: 8px;
+  bottom: 10px;
   font-size: 10px;
   color: #474747;
 }
