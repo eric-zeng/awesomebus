@@ -3,7 +3,7 @@
 /*******     MAP RENDERING        ********************************************/
 /*****************************************************************************/
 // Setup SVG where map will be rendered
-let width = window.innerWidth - 250;
+let width = window.innerWidth - 280;
 let height = window.innerHeight;
 
 // Intialize map div

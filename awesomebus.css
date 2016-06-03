@@ -1,18 +1,21 @@
 html {
   font-family: sans-serif;
+  overflow: hidden;
 }
 
 body {
-  display: flex;
   margin: 0;
-  height: 100%;
+}
+
+#map {
+  margin-left: 290px;
 }
 
 /* from (sort of) https://github.com/MasterMaps/d3-slider */
 .d3-slider {
   position: absolute;
   top: 10px;
-  left: 340px;
+  left: 360px;
   width: 500px;
   z-index: 2;
 }
@@ -44,14 +47,14 @@ div.tooltip {
 
 /* UI panel styles */
 #sidebar {
-  height: 100vh;
+  position: absolute;
+  height: 100%;
   width: 250px;
   z-index: 2;
 
   background-color: #FDFCF8;
   box-shadow: 0px 0px 5px 2px #39616F;
-  /*border-radius: 2px;*/
-  padding: 10px;
+  padding: 10px 20px;
 }
 
 .ui-item {
@@ -101,7 +104,7 @@ h3 {
 
 .footer {
   position: absolute;
-  bottom: 10px;
+  bottom: 30px;
   font-size: 10px;
   color: #474747;
 }
