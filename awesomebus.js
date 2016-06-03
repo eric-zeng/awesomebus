@@ -18,6 +18,8 @@ L.mapbox.accessToken = 'pk.eyJ1IjoiZXJpYy16ZW5nIiwiYSI6ImNpb3ZyZngxYTAxZGF1MG00N
 var map = L.mapbox.map('map', 'mapbox.streets')
   .setView([47.63, -122.33], 12);
 
+map.doubleClickZoom.disable();
+
 // Initialize SVG for drawing routes
 var svg = d3.select(map.getPanes().overlayPane).append('svg').attr('class', 'd3-pane');
 var routeLayer = svg.append("g").attr('class', 'leaflet-zoom-hide');
@@ -506,12 +508,18 @@ function onRouteClicked(feature) {
 }
 
 function onRouteDoubleClicked(feature) {
+  if (!isSelected(feature)) {
+    selectedRoutes.push(feature.properties.route);
+  }
+
   var intersectingRoutes = routeIntersections[feature.properties.route];
-  intersectingRoutes.forEach(function(route) {
-    if (isSelected(feature)) {
-      selectedRoutes.push(route);
-    }
-  });
+  if (intersectingRoutes) {
+    intersectingRoutes.forEach(function(intersectingFeature) {
+      if (!isSelected(intersectingFeature)) {
+        selectedRoutes.push(intersectingFeature.properties.route);
+      }
+    });
+  }
   update();
 }
 
