@@ -475,12 +475,15 @@ d3.select('#route-input').on('input', function() {
   }
 
   var isRoute = routes.find(function(feature) {
-      return feature.properties.route = this.value;
+      return feature.properties.route == this.value;
   }.bind(this));
 
-  if (isRoute) {
-    selectedRoutes = [this.value];
+  if (!isRoute) {
+    return;
   }
+
+  selectedRoutes = [this.value];
+  update();
   moveSelectedRouteToTop(this.value);
 });
 
