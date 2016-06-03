@@ -142,7 +142,8 @@ map.on('draw:created', showIntersectingRoutes);
 
 // remove stupid toolbar since we're not using the edit/delete buttons
 var div = document.getElementsByClassName('leaflet-draw-toolbar')[1];
-div.parentNode.removeChild(div)
+if (div)
+  div.parentNode.removeChild(div)
 
 
 function showIntersectingRoutes(e) {
@@ -549,89 +550,6 @@ function onRouteMouseOut(d) {
 
 }
 
-/*****************************************************************************/
-/*******     SELECTION BOX  DRAWING      *************************************/
-/*****************************************************************************/
- // code (slightly) modified from http://bl.ocks.org/lgersman/5311083
-
- function svg_onmousedown_drawrect() {
-    var p = d3.mouse( this);
-
-    svg.append( "rect")
-    .attr({
-        rx      : 6,
-        ry      : 6,
-        class   : "selection",
-        x       : p[0],
-        y       : p[1],
-        width   : 0,
-        height  : 0
-    })
-
-    // Add starting x, y to  global var
-    rectXY_0 = leafletProjection.invert(p);
-
-}
-
-function svg_onmousemove_drawrect() {
-    var s = svg.select( "rect.selection");
-
-    if( !s.empty()) {
-        var p = d3.mouse( this),
-            d = {
-                x       : parseInt( s.attr( "x"), 10),
-                y       : parseInt( s.attr( "y"), 10),
-                width   : parseInt( s.attr( "width"), 10),
-                height  : parseInt( s.attr( "height"), 10)
-            },
-            move = {
-                x : p[0] - d.x,
-                y : p[1] - d.y
-            }
-        ;
-        if( move.x < 1 || (move.x*2<d.width)) {
-            d.x = p[0];
-            d.width -= move.x;
-        } else {
-            d.width = move.x;
-        }
-
-        if( move.y < 1 || (move.y*2<d.height)) {
-            d.y = p[1];
-            d.height -= move.y;
-        } else {
-            d.height = move.y;
-        }
-
-        s.attr( d);
-
-    }
-}
-
-function svg_onmouseup_drawrect() {
-    // remove selection frame
-    svg.selectAll( "rect.selection").remove();
-
-    // remove temporary selection marker class
-    d3.selectAll( 'g.state.selection').classed( "selection", false);
-
-    svg.selectAll( 'g.state.selection.selected route')
-       .style("stroke-width", getSelectedRouteWidth);
-    d3.selectAll( 'g.state.selection.selected route')
-      .style("stroke-width", getSelectedRouteWidth);
-
-    // Add ending x,y to global var
-    rectXY_1 = leafletProjection.invert(d3.mouse(this));
-    findRoutesInRect();
-}
-
-// Add ability to draw selection box on svg
-svg
-.on( "mousedown", svg_onmousedown_drawrect)
-.on( "mousemove", svg_onmousemove_drawrect)
-.on( "mouseup", svg_onmouseup_drawrect);
-
-//>>>>>>> a0b30e4ba918ae71265f03454698c6e0b34ef533
 /*****************************************************************************/
 /*******     END EVENT HANDERS        ****************************************/
 /*****************************************************************************/
