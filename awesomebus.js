@@ -65,22 +65,22 @@ map.on("viewreset", resetSVGBounds);
 /*****************************************************************************/
 // This function is opied directly from https://github.com/substack/point-in-polygon/blob/master/index.js
 function pointInPolygon (point, vs) {
-    // ray-casting algorithm based on
-    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+  // ray-casting algorithm based on
+  // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
 
-    var x = point[0], y = point[1];
+  var x = point[0], y = point[1];
 
-    var inside = false;
-    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        var xi = vs[i][0], yi = vs[i][1];
-        var xj = vs[j][0], yj = vs[j][1];
+  var inside = false;
+  for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+      var xi = vs[i][0], yi = vs[i][1];
+      var xj = vs[j][0], yj = vs[j][1];
 
-        var intersect = ((yi > y) != (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-    }
+      var intersect = ((yi > y) != (yj > y))
+          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+  }
 
-    return inside;
+  return inside;
 };
 
 
@@ -438,6 +438,7 @@ function renderStops() {
       .append('path')
       .attr('d', geoPath)
       .attr('class', 'stop')
+      .style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible')
 }
 
 
@@ -470,10 +471,8 @@ function onRouteClicked(feature) {
     .classed("unselected", !d3.select(this).classed("unselected"));
   displayRoutes();
 }
-
 function onRouteDoubleClicked(feature) {
- var intersectingRoutes = routeIntersections[feature.properties.route];
-
+  var intersectingRoutes = routeIntersections[feature.properties.route];
   d3.selectAll(".route")
     .filter(function(feature) {
       for (var i = 0; i < intersectingRoutes.length; i++) {
@@ -486,20 +485,31 @@ function onRouteDoubleClicked(feature) {
     .classed("selected", true)
     .classed("visible", isRouteWithinTimes)
     .classed("unselected", false);
-displayRoutes();
+  displayRoutes();
 }
 
-function onZoom() {
-  console.log('onZoom called');
+map.on('zoomend', function() {
+  // Resize the width of the routes based on the new zoom level
   d3.selectAll('.route')
     .style('stroke-width', getRouteWidth)
   d3.selectAll('.selected')
     .style('stroke-width', getSelectedRouteWidth)
-}
-map.on('zoomend', onZoom);
+
+  // Hide stops if zoomed far out
+  if (map.getZoom() < 14) {
+    d3.selectAll('.stop').style('visibility', 'hidden');
+  } else {
+    d3.selectAll('.stop').style('visibility', 'visible')
+  }
+});
+
+// Make stops invisible when zooming so that they don't stay in their old
+// positions as the map changes.
+map.on('zoomstart', function() {
+  d3.selectAll('.stop').style('visibility', 'hidden');
+})
 
 function makeRouteURL(route) {
-
   var routenum = route.toString();
   if (routenum.length == 1) {
     routenum = "00" + routenum;
