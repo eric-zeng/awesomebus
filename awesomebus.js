@@ -65,6 +65,7 @@ map.on("viewreset", resetSVGBounds);
 // Master update function. Call whenever route or stop selections are updated.
 function update() {
   updateRoutes();
+  updateStops();
   updateSidebar();
 }
 
@@ -428,6 +429,45 @@ function renderStops() {
       .attr('class', 'stop')
       .on('click', onStopClicked)
       .style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible')
+      .style('fill', getStopColor)
+      .style('fill-opacity', getStopOpacity)
+}
+
+function getStopColor(feature) {
+  if (selectedStop == feature) {
+    return '#2bdf14';
+  } else {
+    return '#306929';
+  }
+}
+
+function getStopOpacity(feature) {
+  if (selectedStop == feature) {
+    return 1;
+  } else if (!selectedStop) {
+    return 0.8;
+  } else {
+    return 0.6;
+  }
+}
+
+function updateStops() {
+  // Update radius of stop circles based on zoom levels
+  geoPath.pointRadius(function(feature) {
+    if (feature == selectedStop) {
+      return map.getZoom() - 9;
+    } else {
+      return map.getZoom() - 11;
+    }
+  });
+
+  // Update stops based on selection, zoom
+  d3.selectAll('.stop')
+    .attr('d', geoPath)
+    .style('fill', getStopColor)
+    .style('fill-opacity', getStopOpacity)
+    .style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible');
+
 }
 
 function onStopClicked(feature) {
@@ -453,7 +493,8 @@ function updateSidebar() {
     .append('span')
       .attr('class', 'route-link')
       .append('a')
-        .attr('href', function(route) { return makeRouteURL(route)})
+        .attr('href', function(route) { return makeRouteURL(route) })
+        .attr('target', '_blank')
         .text(function(route) { return route });
 
   routeLinks.exit()
@@ -523,14 +564,7 @@ function onRouteDoubleClicked(feature) {
   update();
 }
 
-map.on('zoomend', function() {
-  // Resize the width of the routes based on the new zoom level
-  d3.selectAll('.route')
-    .style('stroke-width', getRouteWidth)
-
-  // Hide stops if zoomed far out
-  d3.selectAll('.stop').style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible');
-});
+map.on('zoomend', update);
 
 // Make stops invisible when zooming so that they don't stay in their old
 // positions as the map changes.
