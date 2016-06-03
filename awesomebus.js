@@ -20,7 +20,8 @@ var map = L.mapbox.map('map', 'mapbox.streets')
 
 // Initialize SVG for drawing routes
 var svg = d3.select(map.getPanes().overlayPane).append('svg');
-var g = svg.append("g").attr("class", "leaflet-zoom-hide");
+var routeLayer = svg.append("g").attr('class', 'leaflet-zoom-hide');
+var stopLayer = svg.append('g').attr('class', 'leaflet-zoom-hide');
 
 // Implement projection from coordinates to latitude-longitude points on the SVG
 function projectPoint(lng, lat) {
@@ -37,12 +38,8 @@ leafletProjection.invert = function(point) {
 // Set up d3 with projection
 var geoPath = d3.geo.path().projection(leafletProjection);
 
-/**
- * Resets the SVG bounds when the map layer position/zoom changes
- * @param routePaths The path elements representing the routes. Needs to be
- * passed as a parameter because they aren't created until the JSON is loaded.
- */
-function resetSVGBounds(routePaths) {
+// Resets the SVG bounds when the map layer position/zoom changes
+function resetSVGBounds() {
   var bounds = geoPath.bounds({'type': 'FeatureCollection', 'features': routes});
   var topLeft = bounds[0];
   var bottomRight = bounds[1];
@@ -52,9 +49,18 @@ function resetSVGBounds(routePaths) {
      .style("left", topLeft[0] + "px")
      .style("top", topLeft[1] + "px");
 
-  g.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
-  routePaths.attr("d", geoPath);
+  routeLayer.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+  stopLayer.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+  if (svgRoutes) {
+    svgRoutes.attr('d', geoPath);
+  }
+  if (svgStops) {
+    svgStops.attr('d', geoPath);
+  }
 }
+map.on("viewreset", resetSVGBounds);
+
+//<<<<<<< HEAD
 /*****************************************************************************/
 /*******     POLYGON SELECTION       *****************************************/
 /*****************************************************************************/
@@ -110,9 +116,10 @@ function findRoutesInPolygon (polygon) {
     .classed("selected", true)
     .classed("visible", isRouteWithinTimes)
     .classed("unselected", false);
-
   displayRoutes();
 }
+
+
 
 // polygon intersact code from http://bl.ocks.org/bycoffe/5575904 (modified)
 // and https://www.mapbox.com/mapbox.js/example/v1.0.0/show-polygon-area/
@@ -201,13 +208,18 @@ function isRouteWithinTimes(feature) {
 /*****************************************************************************/
 /*******     DATA       ******************************************************/
 /*****************************************************************************/
-var routes = [];  // All route data. To be populated by routePathData.json
-var currentlySelectedRoutes = []; // errr .. how exactly is this different from selectedRoutes? can we merge these?
-var visibleRoutes = [] // SUBSET OF CURRENTLY SELECTED ROUTES
+// Data to be populated from JSON files
+var routes = [];
+var stops = [];
 var routeIntersections = {};
+var busTimes = {};
+
+// SVG representation of the data
+var svgRoutes;
+var svgStops;
+
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
-var busTimes = {};
 var currentSliderValues = [0, 2400];
 var debug_count = 0;
 
@@ -241,9 +253,8 @@ d3.json('data/routePathData.json', function(err, data) {
     routes.push(routeFeature);
   }
 
-  var buses = render();
-  resetSVGBounds(buses);
-  map.on("viewreset", function() { resetSVGBounds(buses) });
+  svgRoutes = renderRoutes();
+  resetSVGBounds();
 });
 
 // Pull in route intersection data
@@ -277,12 +288,22 @@ d3.json('data/intersections.json', function (err, data) {
 
 });
 
+d3.json('data/stopData.geojson', function(err, data) {
+  if (err) {
+    console.error(err);
+    return;
+  }
+  stops = data;
+  svgStops = renderStops();
+  resetSVGBounds();
+});
+
 /*****************************************************************************/
 /*******     ROUTE RENDERING        ******************************************/
 /*****************************************************************************/
 
-function render() {
-  return g.selectAll("path")
+function renderRoutes() {
+  return routeLayer.selectAll("path")
     .data(routes)
     .enter()
       .append("path")
@@ -335,14 +356,19 @@ function getColor(feature) {
 }
 
 function getRouteWidth(feature) {
+  var zoomFactor = map.getZoom() / 4;
   var route = feature.properties.route;
   if (route === 'LINK') {
-    return 6;  // Link Light Rail
+    return zoomFactor * 1.5;  // Link Light Rail
   } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
-    return 5;  // Streetcar and RapidRide
+    return zoomFactor * 1;  // Streetcar and RapidRide
   } else  {
-    return 3;  // Buses
+    return zoomFactor * 0.7;  // Buses
   }
+}
+
+function getSelectedRouteWidth(feature) {
+  return map.getZoom() / 2;
 }
 
 function moveSelectedRouteToTop(route) {
@@ -379,7 +405,6 @@ function makeTextboxRouteText() {
 function unsetSelectedRoutes() {
   d3.select('#selected-route').style('visibility', 'hidden');
   d3.select('#selected-text').html('');
-  //currentlySelectedRoutes = [];
   d3.selectAll(".route.selected")
     .classed("unselected", true)
     .classed("selected", false)
@@ -400,6 +425,22 @@ function resetRoutes() {
   unsetSelectedRoutes();
   document.getElementById('route-input').value = '';
 }
+
+
+/*****************************************************************************/
+/*******     STOP RENDERING       ********************************************/
+/*****************************************************************************/
+function renderStops() {
+  return stopLayer.selectAll('path')
+    .data(stops)
+    .enter()
+      .append('path')
+      .attr('d', geoPath)
+      .attr('class', 'stop')
+      .style('stroke', '#E8A043')
+      .style('stroke-width', 2)
+}
+
 
 /*****************************************************************************/
 /*******     EVENT HANDERS        ********************************************/
@@ -422,8 +463,6 @@ function displayRoutes() {
   d3.select('#selected-text').html(makeTextboxRouteText());
   d3.select('#selected-route').style('visibility', 'visible');
 }
-
-
 
 function onRouteClicked(feature) {
   d3.select(this)
@@ -450,6 +489,15 @@ function onRouteDoubleClicked(feature) {
     .classed("unselected", false);
 displayRoutes();
 }
+
+function onZoom() {
+  console.log('onZoom called');
+  d3.selectAll('.route')
+    .style('stroke-width', getRouteWidth)
+  d3.selectAll('.selected')
+    .style('stroke-width', getSelectedRouteWidth)
+}
+map.on('zoomend', onZoom);
 
 function makeRouteURL(route) {
 
@@ -501,85 +549,89 @@ function onRouteMouseOut(d) {
 
 }
 
-// helper func to truncate coordinates
-function getLessPreciseCoords(coords) {
-  var x = coords[0].toFixed(6);
-  var y = coords[1].toFixed(6);
-  return [x,y];
+/*****************************************************************************/
+/*******     SELECTION BOX  DRAWING      *************************************/
+/*****************************************************************************/
+ // code (slightly) modified from http://bl.ocks.org/lgersman/5311083
+
+ function svg_onmousedown_drawrect() {
+    var p = d3.mouse( this);
+
+    svg.append( "rect")
+    .attr({
+        rx      : 6,
+        ry      : 6,
+        class   : "selection",
+        x       : p[0],
+        y       : p[1],
+        width   : 0,
+        height  : 0
+    })
+
+    // Add starting x, y to  global var
+    rectXY_0 = leafletProjection.invert(p);
+
 }
 
-function findRoutesInRect() {
-  if (rectXY_0 == [0, 0] || rectXY_1 == [0, 0])
-    return;
+function svg_onmousemove_drawrect() {
+    var s = svg.select( "rect.selection");
 
-  // This gives us lots more precision than we have (eg 47.65927138109102)
-  // our coordinates are typically more like 47.6740875 (7 digits)
-  var coords0 = getLessPreciseCoords(rectXY_0);
-  var coords1 = getLessPreciseCoords(rectXY_1);
-
-  // Figure out how the box is oriented.
-  var lower_longitude; //left
-  var higher_longitude; // right
-  var lower_latitude;
-  var higher_latitude;  //lower
-
-  if (coords0[0] < coords1[0]) {
-    lower_longitude = coords0[0];
-    higher_longitude = coords1[0];
-  }
-  else {
-    lower_longitude = coords1[0];
-    higher_longitude = coords0[0];
-  }
-  if (coords0[1] < coords1[1]) {
-    lower_latitude = coords0[1];
-    higher_latitude = coords1[1];
-  }
-  else {
-    lower_latitude = coords1[1];
-    higher_latitude = coords0[1];
-  }
-
-  // Search for routes with the same coordinates
-  var intersectingRoutes = []
-  for (var i = 0; i < routes.length; i++) {
-    var geometry = routes[i].geometry.coordinates;
-    for (var j = 0; j < geometry.length; j++) {
-        var long = geometry[j][0];
-        var lat = geometry[j][1];
-        if (long <= higher_longitude
-            && long >= lower_longitude
-            && lat <= higher_latitude
-            && lat >= lower_latitude) {
-
-          intersectingRoutes.push(routes[i]);
-
-          // We found at least one coord in the box; don't need to look through the rest.
-          break;
+    if( !s.empty()) {
+        var p = d3.mouse( this),
+            d = {
+                x       : parseInt( s.attr( "x"), 10),
+                y       : parseInt( s.attr( "y"), 10),
+                width   : parseInt( s.attr( "width"), 10),
+                height  : parseInt( s.attr( "height"), 10)
+            },
+            move = {
+                x : p[0] - d.x,
+                y : p[1] - d.y
+            }
+        ;
+        if( move.x < 1 || (move.x*2<d.width)) {
+            d.x = p[0];
+            d.width -= move.x;
+        } else {
+            d.width = move.x;
         }
+
+        if( move.y < 1 || (move.y*2<d.height)) {
+            d.y = p[1];
+            d.height -= move.y;
+        } else {
+            d.height = move.y;
+        }
+
+        s.attr( d);
 
     }
-  }
-
-  d3.selectAll(".route")
-    .filter(function(feature) {
-      for (var i = 0; i < intersectingRoutes.length; i++) {
-        if (feature.properties.route == intersectingRoutes[i].properties.route) {
-          return true;
-        }
-      }
-      return false;
-    })
-    .classed("selected", true)
-    .classed("visible", isRouteWithinTimes)
-    .classed("unselected", false);
-
-  rectXY_0 = [0, 0];
-  rectXY_1 = [0, 0]
-  displayRoutes();
 }
 
+function svg_onmouseup_drawrect() {
+    // remove selection frame
+    svg.selectAll( "rect.selection").remove();
 
+    // remove temporary selection marker class
+    d3.selectAll( 'g.state.selection').classed( "selection", false);
+
+    svg.selectAll( 'g.state.selection.selected route')
+       .style("stroke-width", getSelectedRouteWidth);
+    d3.selectAll( 'g.state.selection.selected route')
+      .style("stroke-width", getSelectedRouteWidth);
+
+    // Add ending x,y to global var
+    rectXY_1 = leafletProjection.invert(d3.mouse(this));
+    findRoutesInRect();
+}
+
+// Add ability to draw selection box on svg
+svg
+.on( "mousedown", svg_onmousedown_drawrect)
+.on( "mousemove", svg_onmousemove_drawrect)
+.on( "mouseup", svg_onmouseup_drawrect);
+
+//>>>>>>> a0b30e4ba918ae71265f03454698c6e0b34ef533
 /*****************************************************************************/
 /*******     END EVENT HANDERS        ****************************************/
 /*****************************************************************************/
@@ -601,7 +653,7 @@ d3.select('#route-input').on('input', function() {
   d3.selectAll('.route')
     .filter(function(feature) { return feature.properties.route === this.value }.bind(this))
     .style("stroke-opacity", 1)
-    .style("stroke-width", 6)
+    .style("stroke-width", getSelectedRouteWidth)
     .style('stroke', getColor);
 
   unsetSelectedRoutes();
