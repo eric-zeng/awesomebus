@@ -19,7 +19,7 @@ var map = L.mapbox.map('map', 'mapbox.streets')
   .setView([47.63, -122.33], 12);
 
 // Initialize SVG for drawing routes
-var svg = d3.select(map.getPanes().overlayPane).append('svg');
+var svg = d3.select(map.getPanes().overlayPane).append('svg').attr('class', 'd3-pane');
 var routeLayer = svg.append("g").attr('class', 'leaflet-zoom-hide');
 var stopLayer = svg.append('g').attr('class', 'leaflet-zoom-hide');
 
@@ -60,7 +60,6 @@ function resetSVGBounds() {
 }
 map.on("viewreset", resetSVGBounds);
 
-//<<<<<<< HEAD
 /*****************************************************************************/
 /*******     POLYGON SELECTION       *****************************************/
 /*****************************************************************************/
@@ -68,39 +67,36 @@ map.on("viewreset", resetSVGBounds);
 function pointInPolygon (point, vs) {
     // ray-casting algorithm based on
     // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-    
+
     var x = point[0], y = point[1];
-    
+
     var inside = false;
     for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
         var xi = vs[i][0], yi = vs[i][1];
         var xj = vs[j][0], yj = vs[j][1];
-        
+
         var intersect = ((yi > y) != (yj > y))
             && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
         if (intersect) inside = !inside;
     }
-    
+
     return inside;
 };
 
 
 function findRoutesInPolygon (polygon) {
   //polygon is an array of points
-
   // Search for routes with the same coordinates
   var intersectingRoutes = []
   for (var i = 0; i < routes.length; i++) {
     var geometry = routes[i].geometry.coordinates;
     for (var j = 0; j < geometry.length; j++) {
-        var coords = [parseFloat(geometry[j][0]), parseFloat(geometry[j][1])];
-        if (pointInPolygon(coords, polygon)) {
-          intersectingRoutes.push(routes[i]);
-          // We found at least one coord in the box; don't need to look through the rest.
-          break;
-
-        }
-
+      var coords = [parseFloat(geometry[j][0]), parseFloat(geometry[j][1])];
+      if (pointInPolygon(coords, polygon)) {
+        intersectingRoutes.push(routes[i]);
+        // We found at least one coord in the box; don't need to look through the rest.
+        break;
+      }
     }
   }
 
@@ -119,8 +115,6 @@ function findRoutesInPolygon (polygon) {
   displayRoutes();
 }
 
-
-
 // polygon intersact code from http://bl.ocks.org/bycoffe/5575904 (modified)
 // and https://www.mapbox.com/mapbox.js/example/v1.0.0/show-polygon-area/
 var featureGroup = L.featureGroup().addTo(map);
@@ -138,7 +132,13 @@ var drawControl = new L.Control.Draw({
   }
 }).addTo(map);
 
-map.on('draw:created', showIntersectingRoutes);
+map.on('draw:created', function(e) {
+  showIntersectingRoutes(e);
+
+  // Swap the leaflet-draw SVG and the SVG used by d3 so that d3 is on top
+  var overlay = document.getElementsByClassName('leaflet-overlay-pane')[0];
+  overlay.insertBefore(overlay.childNodes[1], overlay.childNodes[0]);
+});
 
 // remove stupid toolbar since we're not using the edit/delete buttons
 var div = document.getElementsByClassName('leaflet-draw-toolbar')[1];
@@ -152,7 +152,7 @@ function showIntersectingRoutes(e) {
     var coords = [e.layer._latlngs[i].lng, e.layer._latlngs[i].lat];
     points.push(coords);
   }
-  findRoutesInPolygon(points); 
+  findRoutesInPolygon(points);
 }
 
 /*****************************************************************************/
@@ -438,8 +438,6 @@ function renderStops() {
       .append('path')
       .attr('d', geoPath)
       .attr('class', 'stop')
-      .style('stroke', '#E8A043')
-      .style('stroke-width', 2)
 }
 
 
