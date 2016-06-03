@@ -102,6 +102,10 @@ h3 {
   margin-left: 4px;
 }
 
+.route-link {
+  margin-right: 0.4em;
+}
+
 .footer {
   position: absolute;
   bottom: 30px;

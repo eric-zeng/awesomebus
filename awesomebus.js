@@ -3,7 +3,7 @@
 /*******     MAP RENDERING        ********************************************/
 /*****************************************************************************/
 // Setup SVG where map will be rendered
-let width = window.innerWidth - 280;
+let width = window.innerWidth - 290;
 let height = window.innerHeight;
 
 // Intialize map div
@@ -84,7 +84,7 @@ function pointInPolygon (point, vs) {
 };
 
 
-function findRoutesInPolygon (polygon) {
+function findRoutesInPolygon(polygon) {
   //polygon is an array of points
   // Search for routes with the same coordinates
   var intersectingRoutes = []
@@ -93,26 +93,17 @@ function findRoutesInPolygon (polygon) {
     for (var j = 0; j < geometry.length; j++) {
       var coords = [parseFloat(geometry[j][0]), parseFloat(geometry[j][1])];
       if (pointInPolygon(coords, polygon)) {
-        intersectingRoutes.push(routes[i]);
+        if (routes[i].properties.route) {
+          intersectingRoutes.push(routes[i].properties.route);
+        }
         // We found at least one coord in the box; don't need to look through the rest.
         break;
       }
     }
   }
 
-  d3.selectAll(".route")
-    .filter(function(feature) {
-      for (var i = 0; i < intersectingRoutes.length; i++) {
-        if (feature.properties.route == intersectingRoutes[i].properties.route) {
-          return true;
-        }
-      }
-      return false;
-    })
-    .classed("selected", true)
-    .classed("visible", isRouteWithinTimes)
-    .classed("unselected", false);
-  displayRoutes();
+  selectedRoutes = intersectingRoutes;
+  updateRoutes();
 }
 
 // polygon intersact code from http://bl.ocks.org/bycoffe/5575904 (modified)
@@ -137,14 +128,15 @@ map.on('draw:created', function(e) {
 
   // Swap the leaflet-draw SVG and the SVG used by d3 so that d3 is on top
   var overlay = document.getElementsByClassName('leaflet-overlay-pane')[0];
-  overlay.insertBefore(overlay.childNodes[1], overlay.childNodes[0]);
+  if (overlay.childNodes[1].classList[0] != 'd3-pane') {
+    overlay.insertBefore(overlay.childNodes[1], overlay.childNodes[0]);
+  }
 });
 
 // remove stupid toolbar since we're not using the edit/delete buttons
 var div = document.getElementsByClassName('leaflet-draw-toolbar')[1];
 if (div)
   div.parentNode.removeChild(div)
-
 
 function showIntersectingRoutes(e) {
   var points = [];
@@ -182,7 +174,7 @@ d3.select('#slider')
       d3.selectAll(".route")
         .classed("visible", isRouteWithinTimes);
 
-      displayRoutes();
+      updateRoutes();
 }));
 
 function isRouteWithinTimes(feature) {
@@ -219,10 +211,18 @@ var busTimes = {};
 var svgRoutes;
 var svgStops;
 
+// Bookkeeping for sidebar
+var selectedRoutes = [];
+
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
 var currentSliderValues = [0, 2400];
 var debug_count = 0;
+
+// Returns whether the route feature is in the selectedRoutes array.
+function isSelected(feature) {
+  return selectedRoutes.indexOf(feature.properties.route) != -1;
+}
 
 // Define the div for the tooltip
 var divTooltip = d3.select("body").append("div")
@@ -310,17 +310,23 @@ function renderRoutes() {
       .append("path")
       .attr("d", geoPath)
       .attr("class", "route")
-      .classed("unselected", true)
-      .classed("selected", false)
-      .classed("visible", true)
       .on("click", onRouteClicked)
       .on("dblclick", onRouteDoubleClicked)
-      .on("mouseover", onRouteMousedOver)
+      // .on("mouseover", onRouteMousedOver)
       .on("mouseout", onRouteMouseOut)
       // Set route color based on transit mode
-      .style("stroke", getColor)
+      .style("stroke", getRouteColor)
       // Set width of line based on transit mode
       .style("stroke-width", getRouteWidth)
+}
+
+
+function updateRoutes() {
+  d3.selectAll(".route")
+    .style("stroke-opacity", getRouteOpacity)
+    .style("stroke-width", getRouteWidth)
+    .style('stroke', getRouteColor);
+  updateSidebarRoutes();
 }
 
 // color palette taken from http://jnnnnn.blogspot.com.au/2015/10/selecting-different-colours-for.html
@@ -343,7 +349,11 @@ var colors = [
   "#3f93ff", "#ff5167", "#d68201"
 ];
 
-function getColor(feature) {
+function getRouteColor(feature) {
+  if (selectedRoutes.length != 0 && !isSelected(feature)) {
+    return '#6E91B9';
+  }
+
   if (feature.properties.route === 'LINK') {
     return "#2b376c";  // Link Light Rail - blue
   } else if (feature.properties.route.startsWith('Stcr')) {
@@ -357,19 +367,27 @@ function getColor(feature) {
 }
 
 function getRouteWidth(feature) {
+  if (isSelected(feature)) {
+    return map.getZoom() / 2;
+  }
+
   var zoomFactor = map.getZoom() / 4;
   var route = feature.properties.route;
   if (route === 'LINK') {
     return zoomFactor * 1.5;  // Link Light Rail
   } else if (route.startsWith('Stcr') || route.endsWith('Line')) {
-    return zoomFactor * 1;  // Streetcar and RapidRide
+    return zoomFactor * 1.2;  // Streetcar and RapidRide
   } else  {
     return zoomFactor * 0.7;  // Buses
   }
 }
 
-function getSelectedRouteWidth(feature) {
-  return map.getZoom() / 2;
+function getRouteOpacity(feature) {
+  if (selectedRoutes.length == 0 || isSelected(feature)) {
+    return 1;
+  } else {
+    return 0.25;
+  }
 }
 
 function moveSelectedRouteToTop(route) {
@@ -385,48 +403,11 @@ function moveSelectedRouteToTop(route) {
     });
 }
 
-function makeTextboxRouteText() {
-  var routeHref = "";
-  var routeText = "";
-  d3.selectAll(".route.selected").filter(".visible")
-    .filter( function(feature) {
-      var routeHref = '<a href="' + makeRouteURL(feature.properties.route)
-     + '">' + feature.properties.route + '</a> ';
-     if (routeText == '') {
-      routeText = routeHref;
-    }
-    else {
-      routeText += ", " + routeHref
-    }
-    });
-  // filter is not the right thing to use... but it works.
-  return routeText;
-}
-
-function unsetSelectedRoutes() {
-  d3.select('#selected-route').style('visibility', 'hidden');
-  d3.select('#selected-text').html('');
-  d3.selectAll(".route.selected")
-    .classed("unselected", true)
-    .classed("selected", false)
-    .classed("visible", false);
-
-}
-
 function resetRoutes() {
-  d3.selectAll(".route")
-    //.sort(d3.ascending)          // Reset z-ordering
-    .classed("selected", false)
-    .classed("unselected", true)
-    .classed("visible", false)
-    .style('stroke', getColor)   // Reset colors
-    .style("stroke-opacity", 1)  // Reset opacity
-    .style("stroke-width", getRouteWidth);  // Reset width
-
-  unsetSelectedRoutes();
   document.getElementById('route-input').value = '';
+  selectedRoutes = [];
+  updateRoutes();
 }
-
 
 /*****************************************************************************/
 /*******     STOP RENDERING       ********************************************/
@@ -438,62 +419,100 @@ function renderStops() {
       .append('path')
       .attr('d', geoPath)
       .attr('class', 'stop')
+      .on('click', onStopClicked)
       .style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible')
 }
 
-
-/*****************************************************************************/
-/*******     EVENT HANDERS        ********************************************/
-/*****************************************************************************/
-function selectRoute(feature) {
-    moveSelectedRouteToTop(feature.properties.route);
-}
-
-function displayRoutes() {
+function onStopClicked(feature) {
+  resetRoutes();
   d3.selectAll(".route")
-    .style("stroke-opacity", .25)
-    .style("stroke-width", getRouteWidth)
-    .style('stroke', '#6E91B9');
-
-  d3.selectAll(".route.selected").filter(".visible")
-    .style("stroke-width", 6)
-    .style("stroke-opacity", 1)
-    .style('stroke', getColor);
-
-  d3.select('#selected-text').html(makeTextboxRouteText());
-  d3.select('#selected-route').style('visibility', 'visible');
-}
-
-function onRouteClicked(feature) {
-  d3.select(this)
-    .classed("selected", !d3.select(this).classed("selected"))
-    .classed("visible", isRouteWithinTimes)
-    .classed("unselected", !d3.select(this).classed("unselected"));
-  displayRoutes();
-}
-function onRouteDoubleClicked(feature) {
-  var intersectingRoutes = routeIntersections[feature.properties.route];
-  d3.selectAll(".route")
-    .filter(function(feature) {
-      for (var i = 0; i < intersectingRoutes.length; i++) {
-        if (feature.properties.route == intersectingRoutes[i].properties.route) {
-          return true;
-        }
-      }
-      return false;
+    .filter(function(routeFeature) {
+      return feature.properties.routes.indexOf(routeFeature.properties.route) != -1;
     })
     .classed("selected", true)
     .classed("visible", isRouteWithinTimes)
     .classed("unselected", false);
-  displayRoutes();
+}
+
+/*****************************************************************************/
+/*******     SIDEBAR              ********************************************/
+/*****************************************************************************/
+function displayRouteInfo() {
+  d3.select('#stop-info').style('visibility', 'hidden');
+  d3.select('#route-info').style('visibility', 'visible');
+}
+
+function displayStopInfo() {
+  d3.select('#stop-info').style('visibility', 'visible');
+  d3.select('#route-info').style('visibility', 'hidden');
+}
+
+function updateSidebarRoutes() {
+  // Display selected routes in the sidebar
+  var routeLinks = d3.select('#selected-routes').selectAll('span')
+    .data(selectedRoutes)
+
+  routeLinks.enter()
+    .append('span')
+      .attr('class', 'route-link')
+      .append('a')
+        .attr('href', function(route) { return makeRouteURL(route)})
+        .text(function(route) { return route });
+
+  routeLinks.exit()
+    .remove();
+}
+
+// Sidebar input box
+d3.select('#route-input').on('input', function() {
+  if (this.value == '') {
+    resetRoutes();
+    return;
+  }
+
+  var isRoute = routes.find(function(feature) {
+      return feature.properties.route = this.value;
+  }.bind(this));
+
+  if (isRoute) {
+    selectedRoutes = [this.value];
+  }
+  moveSelectedRouteToTop(this.value);
+});
+
+// Sidebar reset button
+d3.select('#reset').on('click', resetRoutes);
+
+/*****************************************************************************/
+/*******     EVENT HANDERS        ********************************************/
+/*****************************************************************************/
+
+function onRouteClicked(feature) {
+  var route = feature.properties.route;
+  var index = selectedRoutes.indexOf(feature.properties.route);
+  if (index == -1) {
+    selectedRoutes.push(route);
+  } else {
+    selectedRoutes.splice(index, 1);
+  }
+
+  updateRoutes();
+}
+
+function onRouteDoubleClicked(feature) {
+  var intersectingRoutes = routeIntersections[feature.properties.route];
+  intersectingRoutes.forEach(function(route) {
+    if (isSelected(feature)) {
+      selectedRoutes.push(route);
+    }
+  });
+  updateRoutes();
 }
 
 map.on('zoomend', function() {
   // Resize the width of the routes based on the new zoom level
   d3.selectAll('.route')
     .style('stroke-width', getRouteWidth)
-  d3.selectAll('.selected')
-    .style('stroke-width', getSelectedRouteWidth)
 
   // Hide stops if zoomed far out
   if (map.getZoom() < 14) {
@@ -529,23 +548,23 @@ function makeRouteURL(route) {
 
   return link + routenum + extension;
 }
-function onRouteMousedOver(feature) {
-  var self = this;
-  d3.selectAll(".route.selected").filter(".visible")
-    .filter(function(feature) {return this==self})
-    .filter(function(feature) {
-        var routeHref = '<a href="' + makeRouteURL(feature.properties.route) + '">' + feature.properties.route + '</a> ';
 
-        // show a tooltip with the route name
-          divTooltip.transition()
-            .duration(200)
-            .style("opacity", .95);
-          divTooltip.html(feature.properties.route)
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
-  });
-}
-
+// function onRouteMousedOver(feature) {
+//   var self = this;
+//   d3.selectAll(".route.selected").filter(".visible")
+//     .filter(function(feature) {return this==self})
+//     .filter(function(feature) {
+//         var routeHref = '<a href="' + makeRouteURL(feature.properties.route) + '">' + feature.properties.route + '</a> ';
+//
+//         // show a tooltip with the route name
+//           divTooltip.transition()
+//             .duration(200)
+//             .style("opacity", .95);
+//           divTooltip.html(feature.properties.route)
+//             .style("left", (d3.event.pageX) + "px")
+//             .style("top", (d3.event.pageY - 28) + "px");
+//   });
+// }
 
 function hideToolTip() {
   divTooltip.transition()
@@ -556,49 +575,4 @@ function onRouteMouseOut(d) {
   // TODO - set actual delay and make this link actually do a thinggggggg
   window.setTimeout(hideToolTip, 0);
 
-}
-
-/*****************************************************************************/
-/*******     END EVENT HANDERS        ****************************************/
-/*****************************************************************************/
-
-d3.select('#route-input').on('input', function() {
-  if (this.value == '') {
-    resetRoutes();
-    return;
-  }
-
-  // Restyle other routes
-  d3.selectAll('.route')
-    .filter(function(feature) { return feature.properties.route !== this.value }.bind(this))
-    .style("stroke-opacity", 0.25)
-    .style("stroke-width", getRouteWidth)
-    .style('stroke', '#6E91B9');
-
-  // Restyle input routes
-  d3.selectAll('.route')
-    .filter(function(feature) { return feature.properties.route === this.value }.bind(this))
-    .style("stroke-opacity", 1)
-    .style("stroke-width", getSelectedRouteWidth)
-    .style('stroke', getColor);
-
-  unsetSelectedRoutes();
-  moveSelectedRouteToTop(this.value);
-});
-
-d3.select('#reset').on('click', resetRoutes);
-
-/**
- * Utility function for randomizing colors
- * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
- */
-function stringHash(str) {
-  var hash = 0, i, chr, len;
-  if (str.length === 0) return hash;
-  for (i = 0, len = str.length; i < len; i++) {
-    chr   = str.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
 }

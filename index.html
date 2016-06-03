@@ -17,10 +17,19 @@
       </p>
       <input id="route-input" class="ui-item" placeholder="Route" type="text" autofocus></input>
       <button type="button" id="reset">Reset</button>
-      <div id="selected-route">
-        <h3 id="selected-heading" class="ui-item">Selected Route</h3>
-        <span id="selected-text" class="ui-item"></span>
+
+      <div id="stop-info">
+        <h3 id="stop-header" class="ui-item"></h3>
+        <a>See real-time arrival data at OneBusAway</a>
+        <h4>Routes serving this stop:</h4>
       </div>
+
+      <div id="route-info">
+        <h3 id="selected-heading" class="ui-item">Selected Routes</h3>
+      </div>
+
+      <div id="selected-routes" class="ui-item"></div>
+
       <div class="footer">
         <span>Eric Zeng and Lucy Simko</span><br/>
         <span>Sources: King County Metro, OpenStreetMap</span>
