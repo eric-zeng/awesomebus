@@ -125,7 +125,7 @@ var drawControl = new L.Control.Draw({
   draw: {
     polygon: true,
     polyline: false,
-    rectangle: false,
+    rectangle: true,
     circle: false,
     marker: false
   }
@@ -133,14 +133,10 @@ var drawControl = new L.Control.Draw({
 
 map.on('draw:created', showIntersectingRoutes);
 
+// remove stupid toolbar since we're not using the edit/delete buttons
+var div = document.getElementsByClassName('leaflet-draw-toolbar')[1];
+div.parentNode.removeChild(div)
 
-//map.on('draw:edited', showPolygonAreaEdited);
-
-/*function showPolygonAreaEdited(e) {
-  e.layers.eachLayer(function(layer) {
-    showPolygonArea({ layer: layer });
-  });
-}*/
 
 function showIntersectingRoutes(e) {
   var points = [];

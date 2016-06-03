@@ -6,14 +6,6 @@ body {
   margin: 0;
 }
 
-rect.selection {
-    stroke          : #ff0dbf; /* NEON PINK */
-    stroke-dasharray: 4px;
-    stroke-opacity  : 1;
-    stroke-width    : 4;
-    fill            : transparent;
-}
-
 /* from (sort of) https://github.com/MasterMaps/d3-slider */
 
 .d3-slider {
