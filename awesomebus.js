@@ -191,7 +191,7 @@ d3.select('#slider')
 }));
 
 function isRouteWithinTimes(feature) {
-  
+
   for (var t = 0; t < feature.properties.times.length; t++) {
     var times = feature.properties.times[t];
 
@@ -237,7 +237,7 @@ function isSelected(feature) {
   return selectedRoutes.indexOf(feature.properties.route) != -1;
 }
 
-// Returns whether the route features in the visibleRoutes array, 
+// Returns whether the route features in the visibleRoutes array,
 // which indicates whether the route runs in the times specified by the lister
 function isVisible(feature) {
   return visibleRoutes.indexOf(feature.properties.route) != -1;
@@ -502,20 +502,6 @@ function updateSidebar() {
        selectedAndVisibleRoutes.push(selectedRoutes[i]);
     }
   }
-  /*
-  console.log("selected: ");
-  for (var j in selectedRoutes) {
-    console.log(selectedRoutes[j]);
-  }
-  console.log("visible: ");
-  for (var j in visibleRoutes) {
-    console.log(visibleRoutes[j]);
-  }
-  console.log("selected and visible: ");
-  for (var j in selectedAndVisibleRoutes) {
-    console.log(selectedAndVisibleRoutes[j]);
-  }*/
-
   // Display selected routes in the sidebar
   var routeLinks = d3.select('#selected-routes').selectAll('span')
     .data(selectedAndVisibleRoutes);
@@ -524,9 +510,11 @@ function updateSidebar() {
     .append('span')
       .attr('class', 'route-link')
       .append('a')
-        .attr('href', function(route) { return makeRouteURL(route) })
         .attr('target', '_blank')
-        .text(function(route) { return route });
+
+  routeLinks.select('a')
+    .attr('href', function(route) { return makeRouteURL(route) })
+    .text(function(route) { return route });
 
   routeLinks.exit()
     .remove();
