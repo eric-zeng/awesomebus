@@ -180,17 +180,21 @@ d3.select('#slider')
       var end_hh = Math.floor(value[1] / 100);
       currentSliderValues = [start_hh.toString() + start_mm.toString(),
         end_hh.toString() + end_mm.toString()];
-      d3.selectAll(".route")
-        .classed("visible", isRouteWithinTimes);
 
+      visibleRoutes = [];
+      for (var i in routes) {
+        if (isRouteWithinTimes(routes[i])) {
+          visibleRoutes.push(routes[i].properties.route);
+        }
+      }
       update();
 }));
 
 function isRouteWithinTimes(feature) {
-  debug_count += 1
-
+  
   for (var t = 0; t < feature.properties.times.length; t++) {
     var times = feature.properties.times[t];
+
     // If one end of a time block is between the sliders, return true
     if (parseInt(times[0]) < currentSliderValues[1] && parseInt(times[0]) > currentSliderValues[0]) {
       return true;
@@ -222,15 +226,21 @@ var svgStops;
 
 var selectedRoutes = [];
 var selectedStop = undefined;
+var visibleRoutes = [];
 
 var rectXY_0 = [0, 0];
 var rectXY_1 = [0, 0];
 var currentSliderValues = [0, 2400];
-var debug_count = 0;
 
 // Returns whether the route feature is in the selectedRoutes array.
 function isSelected(feature) {
   return selectedRoutes.indexOf(feature.properties.route) != -1;
+}
+
+// Returns whether the route features in the visibleRoutes array, 
+// which indicates whether the route runs in the times specified by the lister
+function isVisible(feature) {
+  return visibleRoutes.indexOf(feature.properties.route) != -1;
 }
 
 // Define the div for the tooltip
@@ -261,6 +271,7 @@ d3.json('data/routePathData.json', function(err, data) {
       }
     };
     routes.push(routeFeature);
+    visibleRoutes.push(route);
   }
 
   svgRoutes = renderRoutes();
@@ -357,7 +368,7 @@ var colors = [
 ];
 
 function getRouteColor(feature) {
-  if (selectedRoutes.length != 0 && !isSelected(feature)) {
+  if ((selectedRoutes.length != 0 && !isSelected(feature)) || !isVisible(feature)) {
     return '#6E91B9';
   }
 
@@ -374,7 +385,7 @@ function getRouteColor(feature) {
 }
 
 function getRouteWidth(feature) {
-  if (isSelected(feature)) {
+  if (isSelected(feature) && isVisible(feature)) {
     return map.getZoom() / 2;
   }
 
@@ -390,7 +401,7 @@ function getRouteWidth(feature) {
 }
 
 function getRouteOpacity(feature) {
-  if (selectedRoutes.length == 0 || isSelected(feature)) {
+  if ((selectedRoutes.length == 0 || isSelected(feature)) && isVisible(feature)) {
     return 1;
   } else {
     return 0.25;
@@ -485,9 +496,29 @@ function oneBusAwayUrl(feature) {
 }
 
 function updateSidebar() {
+  var selectedAndVisibleRoutes = [];
+  for (var i in selectedRoutes) {
+    if (visibleRoutes.indexOf(selectedRoutes[i]) != -1) {
+       selectedAndVisibleRoutes.push(selectedRoutes[i]);
+    }
+  }
+  /*
+  console.log("selected: ");
+  for (var j in selectedRoutes) {
+    console.log(selectedRoutes[j]);
+  }
+  console.log("visible: ");
+  for (var j in visibleRoutes) {
+    console.log(visibleRoutes[j]);
+  }
+  console.log("selected and visible: ");
+  for (var j in selectedAndVisibleRoutes) {
+    console.log(selectedAndVisibleRoutes[j]);
+  }*/
+
   // Display selected routes in the sidebar
   var routeLinks = d3.select('#selected-routes').selectAll('span')
-    .data(selectedRoutes)
+    .data(selectedAndVisibleRoutes);
 
   routeLinks.enter()
     .append('span')
