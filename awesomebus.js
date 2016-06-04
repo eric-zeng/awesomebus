@@ -332,7 +332,7 @@ function renderRoutes() {
       .attr("class", "route")
       .on("click", onRouteClicked)
       .on("dblclick", onRouteDoubleClicked)
-      // .on("mouseover", onRouteMousedOver)
+      .on("mouseover", onRouteMousedOver)
       .on("mouseout", onRouteMouseOut)
       // Set route color based on transit mode
       .style("stroke", getRouteColor)
@@ -442,6 +442,8 @@ function renderStops() {
       .style('visibility', map.getZoom() < 14 ? 'hidden' : 'visible')
       .style('fill', getStopColor)
       .style('fill-opacity', getStopOpacity)
+      .on('mouseover', onStopMousedOver)
+      .on('mouseout', onStopMouseOut);
 }
 
 function getStopColor(feature) {
@@ -487,6 +489,28 @@ function onStopClicked(feature) {
   update();
 }
 
+function onStopMousedOver(feature) {
+  // prettify list of routes.
+  var routes = "";
+  var numRoutesInThisLine = 0;
+  for (var r in feature.properties.routes) {
+    routes += feature.properties.routes[r];
+    if (r != feature.properties.routes.length - 1) {
+      routes += ", "
+    }
+  }
+  divTooltip.transition()
+    .duration(200)
+    .style("opacity", .95);
+  divTooltip.html(routes)
+    .style("left", (d3.event.pageX) + "px")
+    .style("top", (d3.event.pageY - 28) + "px");
+}
+
+function onStopMouseOut(feature) {
+  hideToolTip();
+}
+
 /*****************************************************************************/
 /*******     SIDEBAR              ********************************************/
 /*****************************************************************************/
@@ -502,19 +526,6 @@ function updateSidebar() {
        selectedAndVisibleRoutes.push(selectedRoutes[i]);
     }
   }
-  /*
-  console.log("selected: ");
-  for (var j in selectedRoutes) {
-    console.log(selectedRoutes[j]);
-  }
-  console.log("visible: ");
-  for (var j in visibleRoutes) {
-    console.log(visibleRoutes[j]);
-  }
-  console.log("selected and visible: ");
-  for (var j in selectedAndVisibleRoutes) {
-    console.log(selectedAndVisibleRoutes[j]);
-  }*/
 
   // Display selected routes in the sidebar
   var routeLinks = d3.select('#selected-routes').selectAll('span')
@@ -624,22 +635,17 @@ function makeRouteURL(route) {
   return link + routenum + extension;
 }
 
-// function onRouteMousedOver(feature) {
-//   var self = this;
-//   d3.selectAll(".route.selected").filter(".visible")
-//     .filter(function(feature) {return this==self})
-//     .filter(function(feature) {
-//         var routeHref = '<a href="' + makeRouteURL(feature.properties.route) + '">' + feature.properties.route + '</a> ';
-//
-//         // show a tooltip with the route name
-//           divTooltip.transition()
-//             .duration(200)
-//             .style("opacity", .95);
-//           divTooltip.html(feature.properties.route)
-//             .style("left", (d3.event.pageX) + "px")
-//             .style("top", (d3.event.pageY - 28) + "px");
-//   });
-// }
+ function onRouteMousedOver(feature) {
+  if (isSelected(feature)) {
+    // show a tooltip with the route name
+    divTooltip.transition()
+      .duration(200)
+      .style("opacity", .95);
+    divTooltip.html(feature.properties.route)
+      .style("left", (d3.event.pageX) + "px")
+      .style("top", (d3.event.pageY - 28) + "px");
+ }
+}
 
 function hideToolTip() {
   divTooltip.transition()
