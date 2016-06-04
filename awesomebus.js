@@ -334,10 +334,9 @@ function renderRoutes() {
       .on("dblclick", onRouteDoubleClicked)
       // .on("mouseover", onRouteMousedOver)
       .on("mouseout", onRouteMouseOut)
-      // Set route color based on transit mode
       .style("stroke", getRouteColor)
-      // Set width of line based on transit mode
       .style("stroke-width", getRouteWidth)
+      .style('stroke-opacity', getRouteOpacity)
 }
 
 function updateRoutes() {
@@ -401,8 +400,15 @@ function getRouteWidth(feature) {
 }
 
 function getRouteOpacity(feature) {
-  if ((selectedRoutes.length == 0 || isSelected(feature)) && isVisible(feature)) {
+  if (isSelected(feature) && isVisible(feature)) {
     return 1;
+  } else if (selectedRoutes.length == 0) {
+    if (feature.properties.route == 'LINK' ||
+        feature.properties.route.startsWith('Stcr')) {
+      return 0.8
+    } else {
+      return 0.5;
+    }
   } else {
     return 0.25;
   }
