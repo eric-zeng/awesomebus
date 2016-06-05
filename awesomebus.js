@@ -211,6 +211,7 @@ function isRouteWithinTimes(feature) {
   return false;
 }
 
+
 /*****************************************************************************/
 /*******     DATA       ******************************************************/
 /*****************************************************************************/
@@ -279,7 +280,7 @@ d3.json('data/routePathData.json', function(err, data) {
 });
 
 // Pull in route intersection data
-d3.json('data/intersections.json', function (err, data) {
+d3.json('data/allIntersections.json', function (err, data) {
   if (err)
     return console.warn(err);
   // This data needs to have the same shape as the route data, even though this is just route numbers.
@@ -299,7 +300,7 @@ d3.json('data/intersections.json', function (err, data) {
       var intersectingRouteFeature = {
         "type": "Feature",
         properties: {
-          "route": data[route][i].properties.route
+          "route": data[route][i]
         }
       };
       intersectingRoutes.push(intersectingRouteFeature);
