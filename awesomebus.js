@@ -174,7 +174,7 @@ $("#slider-range").slider({
   min: 0,
   max: 2400,
   values: [ 800, 2200 ],
-  step: 100,
+  step: 50,
 
   stop: function( event, ui ) {
     currentSliderValues = ui.values;
@@ -184,7 +184,7 @@ $("#slider-range").slider({
     first: 'label',
     last: 'label',
     rest: 'label',
-    step: 3,
+    step: 6,
     labels: ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm', '12am'],
     prefix: "",
     suffix: ""
