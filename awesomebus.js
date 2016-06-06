@@ -159,31 +159,6 @@ function showIntersectingRoutes(e) {
 /*****************************************************************************/
 /*******     SLIDER STUFF        *********************************************/
 /*****************************************************************************/
-// Taken (sort of) from https://github.com/MasterMaps/d3-slider
-// d3.select('#slider')
-//   .call(d3.slider()
-//     .axis(true).min(0).max(2400).step(25)
-//     .value( [ 0, 2400 ] )
-//     .on("slideend", function(evt, value) {
-//       // Convert values to time strings & update current slider values
-//       // I'm sure there's a better way to do this.
-//       var start_mm = (value[0] % 100) * .6;
-//       var end_mm = (value[1] % 100) * .6;
-//       start_mm = start_mm.toString();
-//       if (start_mm.length == 1)
-//         start_mm += "0";
-//       end_mm = end_mm.toString();
-//       if (end_mm.length == 1)
-//         end_mm += "0";
-//
-//       var start_hh = Math.floor(value[0] / 100);
-//       var end_hh = Math.floor(value[1] / 100);
-//       currentSliderValues = [start_hh.toString() + start_mm.toString(),
-//         end_hh.toString() + end_mm.toString()];
-//
-//
-// }));
-
 function updateTimeFilter() {
   visibleRoutes = [];
   for (var i in routes) {
