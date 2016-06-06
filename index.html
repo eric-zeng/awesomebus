@@ -6,7 +6,8 @@
     <title>AwesomeBus</title>
     <link href='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.css' rel='stylesheet' />
     <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.3/leaflet.draw.css' rel='stylesheet' />
-    <link rel="stylesheet" type="text/css" href="lib/d3-slider-master/d3.slider.css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" type="text/css" href="lib/jquery-ui-slider-pips.min.css">
     <link rel="stylesheet" type="text/css" href="awesomebus.css">
   </head>
   <body>
@@ -28,15 +29,16 @@
         <span>Sources: King County Metro, OpenStreetMap</span>
       </div>
     </div>
-    <div id="slider"> </div>
+    <div id="slider-range"></div>
 
     <script src='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.js'></script>
     <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script src="lib/geojson-js-utils-master/geojson-utils.js"></script>
-    <script src="lib/d3-slider-master/d3.slider.js"></script>
     <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.3/leaflet.draw.js'></script>
     <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-geodesy/v0.1.0/leaflet-geodesy.js'></script>
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script src="lib/jquery-ui-slider-pips.min.js"></script>
     <script src="awesomebus.js"></script>
-
   </body>
 </html>

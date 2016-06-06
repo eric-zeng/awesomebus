@@ -11,13 +11,20 @@ body {
   margin-left: 290px;
 }
 
-/* from (sort of) https://github.com/MasterMaps/d3-slider */
-.d3-slider {
+#slider-range {
   position: absolute;
   top: 10px;
   left: 360px;
   width: 500px;
   z-index: 2;
+}
+
+.ui-slider-range {
+  background: #64b164;
+}
+
+.ui-slider-pips [class*=ui-slider-pip-selected] .ui-slider-label {
+  color: green;
 }
 
 /* from http://bl.ocks.org/d3noob/a22c42db65eb00d4e369*/
