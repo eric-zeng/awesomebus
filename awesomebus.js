@@ -645,6 +645,8 @@ function makeRouteURL(route) {
 
  function onRouteMousedOver(feature) {
   if (isSelected(feature)) {
+    // bring route to top
+    moveSelectedRouteToTop(feature.properties.route);
     // show a tooltip with the route name
     divTooltip.transition()
       .duration(200)
@@ -661,7 +663,6 @@ function hideToolTip() {
     .style("opacity", 0);
 }
 function onRouteMouseOut(d) {
-  // TODO - set actual delay and make this link actually do a thinggggggg
-  window.setTimeout(hideToolTip, 0);
+  hideToolTip();
 
 }
