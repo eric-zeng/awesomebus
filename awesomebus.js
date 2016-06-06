@@ -372,15 +372,20 @@ function getRouteColor(feature) {
   if ((selectedRoutes.length != 0 && !isSelected(feature)) || !isVisible(feature)) {
     return '#6E91B9';
   }
+  return routeNumToColor(feature.properties.route);
+}
 
-  if (feature.properties.route === 'LINK') {
+function routeNumToColor(route) {
+  if (route === 'LINK') {
     return "#2b376c";  // Link Light Rail - blue
-  } else if (feature.properties.route.startsWith('Stcr')) {
+  } else if (route.startsWith('Stcr')) {
     return "#d67114";  // Seattle Streetcar - orange
-  } else if (feature.properties.route.endsWith('Line')) {
+  } else if (route.endsWith('Line')) {
     return "#cc0000";  // RapidRide - red
   }
-  var index = routes.indexOf(feature);
+  var index = routes.findIndex(function(feature) {
+    return feature.properties.route == route;
+  });
   var colorIndex = index % colors.length
   return d3.rgb(colors[colorIndex]).darker(.25).toString();;
 }
@@ -543,6 +548,7 @@ function updateSidebar() {
       .attr('class', 'route-link')
       .append('a')
         .attr('target', '_blank')
+        .style('color', routeNumToColor)
 
   routeLinks.select('a')
     .attr('href', function(route) { return makeRouteURL(route) })
