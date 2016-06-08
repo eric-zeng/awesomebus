@@ -3,8 +3,8 @@
 /*******     MAP RENDERING        ********************************************/
 /*****************************************************************************/
 // Setup SVG where map will be rendered
-let width = window.innerWidth - 290;
-let height = window.innerHeight;
+var width = window.innerWidth - 290;
+var height = window.innerHeight;
 
 // Intialize map div
 var mapElement = d3.select('body')
